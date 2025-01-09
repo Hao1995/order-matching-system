@@ -1,16 +1,16 @@
+//go:generate go-enum --marshal
 package events
 
 import "time"
 
-type Side int8
+// ENUM(BUY, SELL)
+type Side int
 
-const (
-	SideBuy Side = iota
-	SideSell
-)
+// ENUM(CREATE, CANCEL)
+type OrderEventType string
 
 type OrderEvent struct {
-	EventType string
+	EventType OrderEventType
 	Data      interface{}
 }
 

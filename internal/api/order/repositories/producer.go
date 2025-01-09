@@ -7,6 +7,7 @@ import (
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 
+	"github.com/Hao1995/order-matching-system/internal/api/order/usecases"
 	"github.com/Hao1995/order-matching-system/pkg/models/events"
 )
 
@@ -16,14 +17,14 @@ type OrderProducer struct {
 }
 
 // NewOrderProducer creates a new OrderProducer
-func NewOrderProducer(writer *kafka.Writer) *OrderProducer {
+func NewOrderProducer(writer *kafka.Writer) usecases.Producer {
 	return &OrderProducer{
 		writer: writer,
 	}
 }
 
 // Publish sends a message to the Kafka topic.
-func (op *OrderProducer) Publish(ctx context.Context, topic string, event events.OrderEvent) error {
+func (op *OrderProducer) Publish(ctx context.Context, topic string, event *events.OrderEvent) error {
 	bytes, err := json.Marshal(event)
 	if err != nil {
 		zap.L().Error("failed to convert event to byte array", zap.Error(err))
