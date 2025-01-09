@@ -15,15 +15,15 @@ type OrderEvent struct {
 }
 
 type OrderCreateEvent struct {
-	ID                  string
-	Symbol              string
-	Side                Side
-	Price               float64
-	Quantities          int64
-	RemainingQuantities int64
-	CanceledQuantities  int64
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
+	ID                string
+	Symbol            string
+	Side              Side
+	Price             float64
+	Quantity          int64
+	RemainingQuantity int64
+	CanceledQuantity  int64
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 type OrderCancelEvent struct {
