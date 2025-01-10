@@ -78,34 +78,30 @@ Project: "github.com/Hao1995/order-matching-system"
 │           ├── main.go
 │           └── Dockerfile
 ├── internal
+│   ├── common
+│   │   └── models
+│   │       └── events
+│   │           ├── order_event.go
+│   │           └── order_event_enum.go
 │   ├── api
 │   │   └── order
-│   │       ├── handlers
-│   │       │   └── order.go
-│   │       └── repositories
-│   │           └── order_producer.go
+│   │       ├── handler.go
+│   │       └── requests
+│   │           ├── cancel_request.go
+│   │           └── create_request.go
 │   └── worker
 │       ├── matching_engine
-│       │   ├── use_cases
-│       │   │   ├── order_book_initializer.go
-│       │   │   └── matching_engine.go
-│       │   ├── repositories
-│       │   │   ├── order_consumer.go
-│       │   │   ├── order_repository.go
-│       │   │   └── matching_producer.go
-│       │   └── domains
+│       │   │── order_book_initializer.go
+│       │   ├── order_consumer.go
+│       │   │── order_repository.go
+│       │   │── matching_engine.go
+│       │   │── matching_producer.go
+│       │   └── models
 │       │       ├── order_book.go
 │       │       └── price_level.go
 │       └── matching_persister
-│           └── repository
-│               ├── matching_repository.go
-│               └── transaction.go
-├── pkg
-│   └── models
-│       ├── events
-│       │   ├── matching_event.go
-│       │   └── order_event.go
-│       └── order.go
+│           └── repositories
+│               └── matching_repository.go
 ├── docs
 │   ├── system_architecture.md
 │   └── class_uml.md

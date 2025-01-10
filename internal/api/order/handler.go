@@ -1,4 +1,4 @@
-package handlers
+package order
 
 import (
 	"net/http"
@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 
-	"github.com/Hao1995/order-matching-system/internal/api/order/usecases"
-	"github.com/Hao1995/order-matching-system/pkg/models/events"
+	"github.com/Hao1995/order-matching-system/internal/api/order/requests"
+	"github.com/Hao1995/order-matching-system/internal/common/models/events"
 )
 
 var (
@@ -17,25 +17,21 @@ var (
 	}
 )
 
-type OrderCreateRequest struct {
-	Symbol   string  `form:"symbol" binding:"required"`
-	Side     string  `form:"side" binding:"required,oneof=buy sell"`
-	Price    float64 `form:"price" binding:"required,gt=0"`
-	Quantity int64   `form:"quantity" binding:"required,gt=0"`
-}
-
-type OrderCancelRequest struct {
-	ID string `uri:"id" binding:"required,uuid"`
-}
-
 type Handler struct {
-	producer usecases.Producer
+	producer Producer
 	topic    string
 }
 
-// CreateOrder handles the creation of a new order.
-func (hlr *Handler) CreateOrder(c *gin.Context) {
-	var request OrderCreateRequest
+func NewHandler(p Producer, topic string) *Handler {
+	return &Handler{
+		producer: p,
+		topic:    topic,
+	}
+}
+
+// Create handles the creation of a new order.
+func (hlr *Handler) Create(c *gin.Context) {
+	var request requests.CreateRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order data"})
 		return
@@ -72,9 +68,9 @@ func (hlr *Handler) CreateOrder(c *gin.Context) {
 	c.JSON(http.StatusAccepted, gin.H{"message": "The Create Order request has been accepted"})
 }
 
-// CancelOrder handles the cancellation of an order.
-func (hlr *Handler) CancelOrder(c *gin.Context) {
-	var request OrderCancelRequest
+// Cancel handles the cancellation of an order.
+func (hlr *Handler) Cancel(c *gin.Context) {
+	var request requests.CancelRequest
 
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Invalid request data"})
