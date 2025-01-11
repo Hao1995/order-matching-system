@@ -109,3 +109,14 @@ Project: "github.com/Hao1995/order-matching-system"
 ├── README.md
 └── docker-compose.yaml
 ```
+
+# Start Services
+```
+
+```
+
+# Kafka Test
+Consume Messages
+```
+docker exec -it kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic AAPL_ORDER --from-beginning
+```

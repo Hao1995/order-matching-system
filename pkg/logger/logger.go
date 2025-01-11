@@ -7,8 +7,7 @@ import (
 )
 
 var (
-	logger *zap.Logger
-	sugar  *zap.SugaredLogger
+	Logger *zap.Logger
 	once   sync.Once
 )
 
@@ -16,16 +15,15 @@ var (
 func InitLogger() error {
 	var err error
 	once.Do(func() {
-		logger, err = zap.NewProduction()
-		sugar = logger.Sugar()
+		Logger, err = zap.NewProduction()
 	})
 	return err
 }
 
 // Sync flushes any buffered log entries
 func Sync() error {
-	if logger != nil {
-		return logger.Sync()
+	if Logger != nil {
+		return Logger.Sync()
 	}
 	return nil
 }

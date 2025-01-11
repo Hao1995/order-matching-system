@@ -9,19 +9,21 @@ import (
 	"time"
 
 	"github.com/Hao1995/order-matching-system/internal/api/order"
+	"github.com/Hao1995/order-matching-system/pkg/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/segmentio/kafka-go"
+	"go.uber.org/zap"
 )
 
 // @todo: extract as config
 const (
-	MQ_TOPIC = "APPLE_ORDER"
+	MQ_TOPIC = "AAPL_ORDER"
 	PORT     = ":8080"
 )
 
 var (
 	MQ_CONNECTIONS = []string{
-		"localhost:9092", "localhost:9093", "localhost:9094",
+		"kafka:9092",
 	}
 )
 
@@ -30,12 +32,19 @@ func main() {
 	// Create context that listens for the interrupt signal from the OS.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 
-	// init KafkaPublisher
-	w := &kafka.Writer{
-		Addr:     kafka.TCP(MQ_CONNECTIONS...),
-		Topic:    MQ_TOPIC,
-		Balancer: &kafka.LeastBytes{},
+	if err := logger.InitLogger(); err != nil {
+		log.Panic("failed to init logger", err)
 	}
+	defer logger.Sync()
+
+	// Kafka
+	w := &kafka.Writer{
+		Addr:                   kafka.TCP(MQ_CONNECTIONS...),
+		Topic:                  MQ_TOPIC,
+		Balancer:               &kafka.LeastBytes{},
+		AllowAutoTopicCreation: true,
+	}
+	logger.Logger.Info("success create a Kafka writer", zap.String("topic", MQ_TOPIC))
 	defer w.Close()
 
 	kafkaProducer := order.NewKafkaProducer(w)

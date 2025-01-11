@@ -59,13 +59,13 @@ func (hlr *Handler) Create(c *gin.Context) {
 		},
 	}
 
-	err = hlr.producer.Publish(c.Request.Context(), hlr.topic, &orderEvent)
+	err = hlr.producer.Publish(c.Request.Context(), &orderEvent)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed create a Create Order request"})
 		return
 	}
 
-	c.JSON(http.StatusAccepted, gin.H{"message": "The Create Order request has been accepted"})
+	c.JSON(http.StatusCreated, gin.H{"message": "The Create Order request has been accepted"})
 }
 
 // Cancel handles the cancellation of an order.
@@ -84,11 +84,11 @@ func (hlr *Handler) Cancel(c *gin.Context) {
 		},
 	}
 
-	err := hlr.producer.Publish(c.Request.Context(), hlr.topic, &orderEvent)
+	err := hlr.producer.Publish(c.Request.Context(), &orderEvent)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed create a Cancel Order request"})
 		return
 	}
 
-	c.JSON(http.StatusAccepted, gin.H{"message": "The Cancel Order request has been accepted"})
+	c.JSON(http.StatusCreated, gin.H{"message": "The Cancel Order request has been accepted"})
 }

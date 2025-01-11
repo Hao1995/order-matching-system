@@ -7,6 +7,6 @@ import (
 )
 
 type Producer interface {
-	Publish(ctx context.Context, topic string, event *events.OrderEvent) error
+	Publish(ctx context.Context, event *events.OrderEvent) error
 	Close() error
 }
