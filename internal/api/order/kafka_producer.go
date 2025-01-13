@@ -27,7 +27,7 @@ func NewKafkaProducer(writer *kafka.Writer) Producer {
 func (op *KafkaProducer) Publish(ctx context.Context, event *events.OrderEvent) error {
 	bytes, err := json.Marshal(event)
 	if err != nil {
-		logger.Logger.Error("failed to convert event to byte array", zap.Error(err))
+		logger.Error("failed to convert event to byte array", zap.Error(err))
 		return err
 	}
 
@@ -35,15 +35,15 @@ func (op *KafkaProducer) Publish(ctx context.Context, event *events.OrderEvent) 
 		Value: bytes,
 	}
 	if err := op.writer.WriteMessages(ctx, msg); err != nil {
-		logger.Logger.Error("failed to write message", zap.Error(err))
+		logger.Error("failed to write message", zap.Error(err))
 		return err
 	}
-	logger.Logger.Info("message sent", zap.ByteString("event", bytes))
+	logger.Info("message sent", zap.ByteString("event", bytes))
 	return nil
 }
 
 // Close closes the Kafka writer.
 func (op *KafkaProducer) Close() error {
-	logger.Logger.Info("closing Kafka Kafkaproducer")
+	logger.Info("closing Kafka Kafkaproducer")
 	return op.writer.Close()
 }

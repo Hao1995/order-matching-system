@@ -110,9 +110,10 @@ Project: "github.com/Hao1995/order-matching-system"
 └── docker-compose.yaml
 ```
 
-# Start Services
+# How to use it?
 ```
-
+make up
+make down
 ```
 
 # Kafka Test
