@@ -2,8 +2,6 @@ package matchingengine
 
 import (
 	"errors"
-
-	"github.com/Hao1995/order-matching-system/internal/common/models"
 )
 
 var (
@@ -18,15 +16,15 @@ type OrderBook struct {
 	sellHead *PriceLevel
 	sellTail *PriceLevel
 
-	// priceLevelHash stores PriceLevel by order id
-	priceLevelHash map[string]*PriceLevel
+	// priceLevelByOrderID stores PriceLevel by order id
+	priceLevelByOrderID map[string]*PriceLevel
 
 	buyPriceHash  map[float64]*PriceLevel
 	sellPriceHash map[float64]*PriceLevel
 }
 
-func (pl *OrderBook) GetPriceLevels(side models.Side) *PriceLevel {
-	if side == models.SideBUY {
+func (pl *OrderBook) GetPriceLevels(side Side) *PriceLevel {
+	if side == SideBUY {
 		return pl.buyHead.Next
 	} else {
 		return pl.sellHead.Next
@@ -34,9 +32,9 @@ func (pl *OrderBook) GetPriceLevels(side models.Side) *PriceLevel {
 }
 
 // Add
-func (pl *OrderBook) Add(order *models.Order) error {
+func (pl *OrderBook) Add(order *Order) error {
 	var priceLevel *PriceLevel
-	if order.Side == models.SideBUY {
+	if order.Side == SideBUY {
 		priceLevel = pl.buyHead
 	} else {
 		priceLevel = pl.sellHead
@@ -45,11 +43,11 @@ func (pl *OrderBook) Add(order *models.Order) error {
 	for priceLevel != nil {
 		if priceLevel.Price == order.Price {
 			priceLevel.Add(order)
-			pl.priceLevelHash[order.ID] = priceLevel
+			pl.priceLevelByOrderID[order.ID] = priceLevel
 			return nil
 		}
 
-		if order.Side == models.SideBUY {
+		if order.Side == SideBUY {
 			if priceLevel.Price < order.Price {
 				break
 			}
@@ -75,7 +73,7 @@ func (pl *OrderBook) Add(order *models.Order) error {
 
 // RemoveOrder
 func (pl *OrderBook) RemoveOrder(orderID string) error {
-	priceLevel, found := pl.priceLevelHash[orderID]
+	priceLevel, found := pl.priceLevelByOrderID[orderID]
 	if !found {
 		return ErrOrderNotExist
 	}
@@ -89,14 +87,14 @@ func (pl *OrderBook) RemoveOrder(orderID string) error {
 		nextNode.Prev = tmpNode
 	}
 
-	delete(pl.priceLevelHash, orderID)
+	delete(pl.priceLevelByOrderID, orderID)
 	return nil
 }
 
 // RemovePriceLevel
-func (pl *OrderBook) RemovePriceLevel(side models.Side, price float64) error {
+func (pl *OrderBook) RemovePriceLevel(side Side, price float64) error {
 	var priceHash map[float64]*PriceLevel
-	if side == models.SideBUY {
+	if side == SideBUY {
 		priceHash = pl.buyPriceHash
 	} else {
 		priceHash = pl.sellPriceHash
@@ -112,7 +110,7 @@ func (pl *OrderBook) RemovePriceLevel(side models.Side, price float64) error {
 	prevNode.Next = nextNode
 	nextNode.Prev = prevNode
 
-	if side == models.SideBUY {
+	if side == SideBUY {
 		delete(pl.buyPriceHash, price)
 	} else {
 		delete(pl.sellPriceHash, price)

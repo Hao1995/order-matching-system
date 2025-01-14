@@ -2,8 +2,6 @@ package matchingengine
 
 import (
 	"errors"
-
-	"github.com/Hao1995/order-matching-system/internal/common/models"
 )
 
 var (
@@ -12,7 +10,7 @@ var (
 )
 
 type OrderNode struct {
-	*models.Order
+	*Order
 
 	Next *OrderNode
 	Prev *OrderNode
@@ -43,7 +41,7 @@ func NewPriceLevel(price float64) *PriceLevel {
 }
 
 // Add
-func (pl *PriceLevel) Add(order *models.Order) error {
+func (pl *PriceLevel) Add(order *Order) error {
 	if order.Price != pl.Price {
 		return ErrNotMatchingPrice
 	}

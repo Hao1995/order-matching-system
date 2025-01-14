@@ -38,7 +38,7 @@ type MatchingTick struct {
 	Quantity int64
 }
 
-type Matching struct {
+type MatchingData struct {
 	Order        interface{}
 	Transactions []MatchingTransaction
 	TopBuy       []MatchingTick

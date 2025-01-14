@@ -1,5 +1,5 @@
 //go:generate go-enum --marshal
-package models
+package matchingengine
 
 import "time"
 
