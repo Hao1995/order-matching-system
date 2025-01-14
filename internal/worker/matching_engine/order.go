@@ -16,6 +16,9 @@ type Order struct {
 	CanceledQuantity  int64
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
+
+	Next *Order
+	Prev *Order
 }
 
 func GetOppositeSide(side Side) Side {

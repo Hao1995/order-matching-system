@@ -9,35 +9,37 @@ var (
 	ErrOrderNotFound    = errors.New("order not found")
 )
 
-type OrderNode struct {
-	*Order
-
-	Next *OrderNode
-	Prev *OrderNode
-}
-
 type PriceLevel struct {
 	Price    float64
 	Quantity int64
 
 	// headOrder sorts by created_at in ascending order
-	headOrder *OrderNode
-	tailOrder *OrderNode
+	headOrder *Order
+	tailOrder *Order
 
-	// nodeHash stores the OrderNode by ID
-	nodeHash map[string]*OrderNode
+	// orderByID stores the Order by ID
+	orderByID map[string]*Order
 
 	Next *PriceLevel
 	Prev *PriceLevel
 }
 
 func NewPriceLevel(price float64) *PriceLevel {
+	headOrder, tailOrder := &Order{}, &Order{}
+	headOrder.Next = tailOrder
+	tailOrder.Prev = headOrder
+
 	return &PriceLevel{
 		Price:     price,
 		Quantity:  0,
-		headOrder: &OrderNode{},
-		tailOrder: &OrderNode{},
+		headOrder: headOrder,
+		tailOrder: tailOrder,
 	}
+}
+
+// GetFirstOrder retrieves the first order node
+func (pl *PriceLevel) GetFirstOrder() *Order {
+	return pl.headOrder.Next
 }
 
 // Add
@@ -47,32 +49,29 @@ func (pl *PriceLevel) Add(order *Order) error {
 	}
 	pl.Quantity += order.RemainingQuantity
 
-	tmpNode := pl.tailOrder.Prev
-	newOrder := &OrderNode{
-		Order: order,
-		Prev:  tmpNode,
-		Next:  pl.tailOrder,
-	}
-	tmpNode.Next = newOrder
-	pl.tailOrder.Prev = newOrder
+	prevNode := pl.tailOrder.Prev
+	prevNode.Next = order
+	order.Next = pl.tailOrder
+	order.Prev = prevNode
+	pl.tailOrder.Prev = order
 	return nil
 }
 
 // Remove
 func (pl *PriceLevel) Remove(orderID string) error {
-	orderNode, ok := pl.nodeHash[orderID]
+	order, ok := pl.orderByID[orderID]
 	if !ok {
 		return ErrOrderNotExist
 	}
 
-	prevNode := orderNode.Prev
-	nextNode := orderNode.Next
+	prevNode := order.Prev
+	nextNode := order.Next
 	prevNode.Next = nextNode
 	nextNode.Prev = prevNode
 
-	pl.Quantity -= orderNode.RemainingQuantity
-	orderNode = nil
-	delete(pl.nodeHash, orderID)
+	pl.Quantity -= order.RemainingQuantity
+	order = nil
+	delete(pl.orderByID, orderID)
 
 	return nil
 }
