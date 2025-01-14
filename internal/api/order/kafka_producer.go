@@ -44,6 +44,6 @@ func (op *KafkaProducer) Publish(ctx context.Context, event *events.OrderEvent) 
 
 // Close closes the Kafka writer.
 func (op *KafkaProducer) Close() error {
-	logger.Info("closing Kafka Kafkaproducer")
+	logger.Info("closing Kafka producer")
 	return op.writer.Close()
 }
