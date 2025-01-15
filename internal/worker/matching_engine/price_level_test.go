@@ -28,7 +28,8 @@ func (suite *PriceLevelTestSuite) TearDownTest() {}
 
 func (suite *PriceLevelTestSuite) TearDownSuite() {}
 
-func (suite *PriceLevelTestSuite) TestGetFirstOrder_WithAscendingCreatedAtOrder() {
+func (suite *PriceLevelTestSuite) TestGetFirstOrder() {
+	// arrange
 	price := 35.9
 	priceLevel := NewPriceLevel(price)
 	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00+08:00")
@@ -46,19 +47,31 @@ func (suite *PriceLevelTestSuite) TestGetFirstOrder_WithAscendingCreatedAtOrder(
 	}
 
 	order2 := order1
+	order2.ID = uuid.NewString()
 	order2.CreatedAt = now.Add(1 * time.Hour)
 	order2.UpdatedAt = now.Add(1 * time.Hour)
 
 	// add orders with ascending order
-	priceLevel.Add(&order1)
-	priceLevel.Add(&order2)
+	priceLevel.headOrder.Next = &order1
+	order1.Prev = priceLevel.headOrder
+	priceLevel.orderByID[order1.ID] = &order1
 
+	order1.Next = &order2
+	order2.Prev = &order1
+	priceLevel.orderByID[order2.ID] = &order2
+
+	order2.Next = priceLevel.tailOrder
+	priceLevel.tailOrder.Prev = &order2
+
+	// act
 	firstOrder := priceLevel.GetFirstOrder()
 
+	// assert
 	suite.Equal(&order1, firstOrder)
 }
 
-func (suite *PriceLevelTestSuite) TestGetFirstOrder_WithDescendingCreatedAtOrder() {
+func (suite *PriceLevelTestSuite) TestAdd() {
+	// arrange
 	price := 35.9
 	priceLevel := NewPriceLevel(price)
 	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00+08:00")
@@ -76,14 +89,116 @@ func (suite *PriceLevelTestSuite) TestGetFirstOrder_WithDescendingCreatedAtOrder
 	}
 
 	order2 := order1
+	order2.ID = uuid.NewString()
 	order2.CreatedAt = now.Add(1 * time.Hour)
 	order2.UpdatedAt = now.Add(1 * time.Hour)
 
-	// add orders with ascending order
+	// act
 	priceLevel.Add(&order2)
 	priceLevel.Add(&order1)
 
-	firstOrder := priceLevel.GetFirstOrder()
+	// assert
+	suite.Equal(&order1, priceLevel.headOrder.Next)
+	suite.Equal(&order2, priceLevel.headOrder.Next.Next)
+}
 
-	suite.Equal(&order1, firstOrder)
+func (suite *PriceLevelTestSuite) TestAdd_ErrNotMatchingPrice() {
+	// arrange
+	price1 := 35.9
+	price2 := 30.1
+	priceLevel := NewPriceLevel(price1)
+	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00+08:00")
+
+	order1 := Order{
+		ID:                uuid.NewString(),
+		Symbol:            suite.symbol,
+		Side:              SideBUY,
+		Price:             price2,
+		Quantity:          10,
+		RemainingQuantity: 10,
+		CanceledQuantity:  0,
+		CreatedAt:         now,
+		UpdatedAt:         now,
+	}
+
+	// act
+	err := priceLevel.Add(&order1)
+
+	// assert
+	suite.ErrorIs(err, ErrNotMatchingPrice)
+}
+
+func (suite *PriceLevelTestSuite) TestRemove() {
+	// arrange
+	price := 35.9
+	priceLevel := NewPriceLevel(price)
+	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00+08:00")
+
+	order1 := Order{
+		ID:                uuid.NewString(),
+		Symbol:            suite.symbol,
+		Side:              SideBUY,
+		Price:             price,
+		Quantity:          10,
+		RemainingQuantity: 10,
+		CanceledQuantity:  0,
+		CreatedAt:         now,
+		UpdatedAt:         now,
+	}
+
+	order2 := order1
+	order2.ID = uuid.NewString()
+	order2.CreatedAt = now.Add(1 * time.Hour)
+	order2.UpdatedAt = now.Add(1 * time.Hour)
+
+	// add orders
+	priceLevel.headOrder.Next = &order1
+	order1.Prev = priceLevel.headOrder
+	priceLevel.orderByID[order1.ID] = &order1
+
+	order1.Next = &order2
+	order2.Prev = &order1
+	priceLevel.orderByID[order2.ID] = &order2
+
+	order2.Next = priceLevel.tailOrder
+	priceLevel.tailOrder.Prev = &order2
+
+	// act
+	err := priceLevel.Remove(order1.ID)
+
+	// assert
+	suite.ErrorIs(err, nil)
+	suite.Equal(&order2, priceLevel.headOrder.Next)
+}
+
+func (suite *PriceLevelTestSuite) TestRemove_OrderNotExist() {
+	// arrange
+	price := 35.9
+	priceLevel := NewPriceLevel(price)
+	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00+08:00")
+
+	// add orders
+	order1 := Order{
+		ID:                uuid.NewString(),
+		Symbol:            suite.symbol,
+		Side:              SideBUY,
+		Price:             price,
+		Quantity:          10,
+		RemainingQuantity: 10,
+		CanceledQuantity:  0,
+		CreatedAt:         now,
+		UpdatedAt:         now,
+	}
+	priceLevel.headOrder.Next = &order1
+	order1.Prev = priceLevel.headOrder
+	priceLevel.orderByID[order1.ID] = &order1
+
+	order1.Next = priceLevel.tailOrder
+	priceLevel.tailOrder.Prev = &order1
+
+	// act
+	err := priceLevel.Remove(uuid.NewString())
+
+	// assert
+	suite.ErrorIs(err, ErrOrderNotExist)
 }

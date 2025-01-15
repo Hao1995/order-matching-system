@@ -32,6 +32,7 @@ func NewPriceLevel(price float64) *PriceLevel {
 	return &PriceLevel{
 		Price:     price,
 		Quantity:  0,
+		orderByID: make(map[string]*Order),
 		headOrder: headOrder,
 		tailOrder: tailOrder,
 	}
@@ -62,6 +63,9 @@ func (pl *PriceLevel) Add(order *Order) error {
 	order.Prev = currOrder
 	tmpNode.Prev = order
 	order.Next = tmpNode
+
+	pl.orderByID[order.ID] = order
+
 	return nil
 }
 
