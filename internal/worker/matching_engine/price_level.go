@@ -25,7 +25,7 @@ type PriceLevel struct {
 }
 
 func NewPriceLevel(price float64) *PriceLevel {
-	headOrder, tailOrder := &Order{}, &Order{}
+	headOrder, tailOrder := &Order{IsDummyNode: true}, &Order{IsDummyNode: true}
 	headOrder.Next = tailOrder
 	tailOrder.Prev = headOrder
 
@@ -49,11 +49,19 @@ func (pl *PriceLevel) Add(order *Order) error {
 	}
 	pl.Quantity += order.RemainingQuantity
 
-	prevNode := pl.tailOrder.Prev
-	prevNode.Next = order
-	order.Next = pl.tailOrder
-	order.Prev = prevNode
-	pl.tailOrder.Prev = order
+	currOrder := pl.tailOrder.Prev
+	for !currOrder.IsDummyNode {
+		if currOrder.CreatedAt.Before(order.CreatedAt) {
+			break
+		}
+		currOrder = currOrder.Prev
+	}
+
+	tmpNode := currOrder.Next
+	currOrder.Next = order
+	order.Prev = currOrder
+	tmpNode.Prev = order
+	order.Next = tmpNode
 	return nil
 }
 

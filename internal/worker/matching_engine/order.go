@@ -17,6 +17,8 @@ type Order struct {
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 
+	IsDummyNode bool
+
 	Next *Order
 	Prev *Order
 }
