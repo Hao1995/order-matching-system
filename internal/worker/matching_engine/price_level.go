@@ -20,8 +20,9 @@ type PriceLevel struct {
 	// orderByID stores the Order by ID
 	orderByID map[string]*Order
 
-	Next *PriceLevel
-	Prev *PriceLevel
+	IsDummyNode bool
+	Next        *PriceLevel
+	Prev        *PriceLevel
 }
 
 func NewPriceLevel(price float64) *PriceLevel {

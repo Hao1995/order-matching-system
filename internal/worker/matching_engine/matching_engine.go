@@ -17,6 +17,12 @@ type MatchingEngine struct {
 	OrderBook *OrderBook
 }
 
+func NewMatchingEngine() *MatchingEngine {
+	return &MatchingEngine{
+		OrderBook: NewOrderBook(),
+	}
+}
+
 func (me *MatchingEngine) CancelOrder(ctx context.Context, orderID string) events.MatchingData {
 	var matching events.MatchingData
 
