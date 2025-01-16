@@ -12,6 +12,7 @@ var (
 type PriceLevel struct {
 	Price    float64
 	Quantity int64
+	Side     Side
 
 	// headOrder sorts by created_at in ascending order
 	headOrder *Order
@@ -25,7 +26,7 @@ type PriceLevel struct {
 	Prev        *PriceLevel
 }
 
-func NewPriceLevel(price float64) *PriceLevel {
+func NewPriceLevel(price float64, side Side) *PriceLevel {
 	headOrder, tailOrder := &Order{IsDummyNode: true}, &Order{IsDummyNode: true}
 	headOrder.Next = tailOrder
 	tailOrder.Prev = headOrder
@@ -91,5 +92,5 @@ func (pl *PriceLevel) Remove(orderID string) error {
 
 // IsEmpty checks if the price level has no orders
 func (pl *PriceLevel) IsEmpty() bool {
-	return pl.headOrder.Next == nil
+	return pl.headOrder.Next == pl.tailOrder
 }

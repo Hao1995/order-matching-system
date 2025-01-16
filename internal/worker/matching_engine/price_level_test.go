@@ -30,8 +30,9 @@ func (suite *PriceLevelTestSuite) TearDownSuite() {}
 
 func (suite *PriceLevelTestSuite) TestGetFirstOrder() {
 	// arrange
+	side := SideBUY
 	price := 35.9
-	priceLevel := NewPriceLevel(price)
+	priceLevel := NewPriceLevel(price, side)
 	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00+08:00")
 
 	order1 := Order{
@@ -72,8 +73,9 @@ func (suite *PriceLevelTestSuite) TestGetFirstOrder() {
 
 func (suite *PriceLevelTestSuite) TestAdd() {
 	// arrange
+	side := SideBUY
 	price := 35.9
-	priceLevel := NewPriceLevel(price)
+	priceLevel := NewPriceLevel(price, side)
 	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00+08:00")
 
 	order1 := Order{
@@ -104,15 +106,16 @@ func (suite *PriceLevelTestSuite) TestAdd() {
 
 func (suite *PriceLevelTestSuite) TestAdd_ErrNotMatchingPrice() {
 	// arrange
+	side := SideBUY
 	price1 := 35.9
 	price2 := 30.1
-	priceLevel := NewPriceLevel(price1)
+	priceLevel := NewPriceLevel(price1, side)
 	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00+08:00")
 
 	order1 := Order{
 		ID:                uuid.NewString(),
 		Symbol:            suite.symbol,
-		Side:              SideBUY,
+		Side:              side,
 		Price:             price2,
 		Quantity:          10,
 		RemainingQuantity: 10,
@@ -130,14 +133,15 @@ func (suite *PriceLevelTestSuite) TestAdd_ErrNotMatchingPrice() {
 
 func (suite *PriceLevelTestSuite) TestRemove() {
 	// arrange
+	side := SideBUY
 	price := 35.9
-	priceLevel := NewPriceLevel(price)
+	priceLevel := NewPriceLevel(price, side)
 	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00+08:00")
 
 	order1 := Order{
 		ID:                uuid.NewString(),
 		Symbol:            suite.symbol,
-		Side:              SideBUY,
+		Side:              side,
 		Price:             price,
 		Quantity:          10,
 		RemainingQuantity: 10,
@@ -173,15 +177,16 @@ func (suite *PriceLevelTestSuite) TestRemove() {
 
 func (suite *PriceLevelTestSuite) TestRemove_OrderNotExist() {
 	// arrange
+	side := SideBUY
 	price := 35.9
-	priceLevel := NewPriceLevel(price)
+	priceLevel := NewPriceLevel(price, side)
 	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00+08:00")
 
 	// add orders
 	order1 := Order{
 		ID:                uuid.NewString(),
 		Symbol:            suite.symbol,
-		Side:              SideBUY,
+		Side:              side,
 		Price:             price,
 		Quantity:          10,
 		RemainingQuantity: 10,

@@ -25,11 +25,11 @@ type OrderBook struct {
 }
 
 func NewOrderBook() *OrderBook {
-	headBuyPriceLevel, tailBuyPriceLevel := NewPriceLevel(math.MaxFloat64), NewPriceLevel(0.0)
+	headBuyPriceLevel, tailBuyPriceLevel := NewPriceLevel(math.MaxFloat64, SideBUY), NewPriceLevel(0.0, SideBUY)
 	headBuyPriceLevel.Next = tailBuyPriceLevel
 	tailBuyPriceLevel.Prev = headBuyPriceLevel
 
-	headSellPriceLevel, tailSellPriceLevel := NewPriceLevel(0.0), NewPriceLevel(math.MaxFloat64)
+	headSellPriceLevel, tailSellPriceLevel := NewPriceLevel(0.0, SideSELL), NewPriceLevel(math.MaxFloat64, SideSELL)
 	headSellPriceLevel.Next = tailSellPriceLevel
 	tailSellPriceLevel.Prev = headSellPriceLevel
 
@@ -81,7 +81,7 @@ func (ob *OrderBook) AddOrder(order *Order) error {
 		priceLevel = priceLevel.Next
 	}
 
-	newPriceLevel := NewPriceLevel(order.Price)
+	newPriceLevel := NewPriceLevel(order.Price, order.Side)
 	newPriceLevel.Add(order)
 	if order.Side == SideBUY {
 		ob.buyNodeByPrice[order.Price] = newPriceLevel
@@ -105,12 +105,8 @@ func (ob *OrderBook) RemoveOrder(orderID string) error {
 	}
 
 	priceLevel.Remove(orderID)
-
 	if priceLevel.IsEmpty() {
-		tmpNode := priceLevel.Prev
-		nextNode := priceLevel.Next
-		tmpNode.Next = nextNode
-		nextNode.Prev = tmpNode
+		ob.RemovePriceLevel(priceLevel.Side, priceLevel.Price)
 	}
 
 	delete(ob.priceLevelByOrderID, orderID)

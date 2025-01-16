@@ -147,3 +147,56 @@ func (s *OrderBookTestSuite) TestAddOrder_SellSide() {
 	s.True(ok)
 	s.Equal(sellPriceLevel, sellNode)
 }
+
+func (s *OrderBookTestSuite) TestRemoveOrder() {
+	// arrange
+	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z08:00")
+	side := SideBUY
+	price1 := 25.89
+	price2 := 30.33
+
+	order1 := Order{
+		ID:                uuid.NewString(),
+		Symbol:            s.symbol,
+		Side:              side,
+		Price:             price1,
+		Quantity:          10,
+		RemainingQuantity: 10,
+		CanceledQuantity:  0,
+		CreatedAt:         now,
+		UpdatedAt:         now,
+	}
+	order2 := order1
+	order2.Price = price2
+
+	orderBook := NewOrderBook()
+	priceLevel1 := NewPriceLevel(order1.Price, order1.Side)
+	priceLevel1.Add(&order1)
+	orderBook.priceLevelByOrderID[order1.ID] = priceLevel1
+
+	priceLevel2 := NewPriceLevel(order2.Price, order2.Side)
+	priceLevel2.Add(&order2)
+	orderBook.priceLevelByOrderID[order2.ID] = priceLevel2
+
+	orderBook.buyHead.Next = priceLevel2
+	priceLevel2.Prev = orderBook.buyHead
+	priceLevel2.Next = priceLevel1
+	priceLevel1.Prev = priceLevel2
+	priceLevel1.Next = orderBook.buyTail
+	orderBook.buyTail.Prev = priceLevel1
+
+	orderBook.buyNodeByPrice[priceLevel1.Price] = priceLevel1
+	orderBook.buyNodeByPrice[priceLevel2.Price] = priceLevel2
+
+	// act
+	err := orderBook.RemoveOrder(order2.ID)
+	s.ErrorIs(err, nil)
+
+	// assert
+	priceLevel := orderBook.buyHead.Next
+	s.Equal(order1.Price, priceLevel.Price)
+	s.Equal(orderBook.buyTail, priceLevel.Next)
+
+	_, ok := orderBook.buyNodeByPrice[order2.Price]
+	s.False(ok)
+}
