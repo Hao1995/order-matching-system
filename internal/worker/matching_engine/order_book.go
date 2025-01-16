@@ -44,27 +44,27 @@ func NewOrderBook() *OrderBook {
 	}
 }
 
-func (pl *OrderBook) GetPriceLevels(side Side) *PriceLevel {
+func (ob *OrderBook) GetPriceLevels(side Side) *PriceLevel {
 	if side == SideBUY {
-		return pl.buyHead.Next
+		return ob.buyHead.Next
 	} else {
-		return pl.sellHead.Next
+		return ob.sellHead.Next
 	}
 }
 
 // Add
-func (pl *OrderBook) AddOrder(order *Order) error {
+func (ob *OrderBook) AddOrder(order *Order) error {
 	var priceLevel *PriceLevel
 	if order.Side == SideBUY {
-		priceLevel = pl.buyHead
+		priceLevel = ob.buyHead
 	} else {
-		priceLevel = pl.sellHead
+		priceLevel = ob.sellHead
 	}
 
 	for priceLevel != nil {
 		if priceLevel.Price == order.Price {
 			priceLevel.Add(order)
-			pl.priceLevelByOrderID[order.ID] = priceLevel
+			ob.priceLevelByOrderID[order.ID] = priceLevel
 			return nil
 		}
 
@@ -84,9 +84,9 @@ func (pl *OrderBook) AddOrder(order *Order) error {
 	newPriceLevel := NewPriceLevel(order.Price)
 	newPriceLevel.Add(order)
 	if order.Side == SideBUY {
-		pl.buyNodeByPrice[order.Price] = newPriceLevel
+		ob.buyNodeByPrice[order.Price] = newPriceLevel
 	} else {
-		pl.sellNodeByPrice[order.Price] = newPriceLevel
+		ob.sellNodeByPrice[order.Price] = newPriceLevel
 	}
 
 	tmpNode := priceLevel.Prev
@@ -98,8 +98,8 @@ func (pl *OrderBook) AddOrder(order *Order) error {
 }
 
 // RemoveOrder
-func (pl *OrderBook) RemoveOrder(orderID string) error {
-	priceLevel, found := pl.priceLevelByOrderID[orderID]
+func (ob *OrderBook) RemoveOrder(orderID string) error {
+	priceLevel, found := ob.priceLevelByOrderID[orderID]
 	if !found {
 		return ErrOrderNotExist
 	}
@@ -113,17 +113,17 @@ func (pl *OrderBook) RemoveOrder(orderID string) error {
 		nextNode.Prev = tmpNode
 	}
 
-	delete(pl.priceLevelByOrderID, orderID)
+	delete(ob.priceLevelByOrderID, orderID)
 	return nil
 }
 
 // RemovePriceLevel
-func (pl *OrderBook) RemovePriceLevel(side Side, price float64) error {
+func (ob *OrderBook) RemovePriceLevel(side Side, price float64) error {
 	var priceHash map[float64]*PriceLevel
 	if side == SideBUY {
-		priceHash = pl.buyNodeByPrice
+		priceHash = ob.buyNodeByPrice
 	} else {
-		priceHash = pl.sellNodeByPrice
+		priceHash = ob.sellNodeByPrice
 	}
 
 	priceLevel, found := priceHash[price]
@@ -137,9 +137,9 @@ func (pl *OrderBook) RemovePriceLevel(side Side, price float64) error {
 	nextNode.Prev = prevNode
 
 	if side == SideBUY {
-		delete(pl.buyNodeByPrice, price)
+		delete(ob.buyNodeByPrice, price)
 	} else {
-		delete(pl.sellNodeByPrice, price)
+		delete(ob.sellNodeByPrice, price)
 	}
 
 	return nil
