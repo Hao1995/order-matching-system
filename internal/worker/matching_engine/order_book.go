@@ -83,6 +83,11 @@ func (pl *OrderBook) Add(order *Order) error {
 
 	newPriceLevel := NewPriceLevel(order.Price)
 	newPriceLevel.Add(order)
+	if order.Side == SideBUY {
+		pl.buyNodeByPrice[order.Price] = newPriceLevel
+	} else {
+		pl.sellNodeByPrice[order.Price] = newPriceLevel
+	}
 
 	tmpNode := priceLevel.Prev
 	tmpNode.Next = newPriceLevel
