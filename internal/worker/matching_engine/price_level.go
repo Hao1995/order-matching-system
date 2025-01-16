@@ -53,10 +53,7 @@ func (pl *PriceLevel) Add(order *Order) error {
 	pl.Quantity += order.RemainingQuantity
 
 	currOrder := pl.tailOrder.Prev
-	for !currOrder.IsDummyNode {
-		if currOrder.CreatedAt.Before(order.CreatedAt) {
-			break
-		}
+	for !currOrder.IsDummyNode && order.CreatedAt.Before(currOrder.CreatedAt) {
 		currOrder = currOrder.Prev
 	}
 

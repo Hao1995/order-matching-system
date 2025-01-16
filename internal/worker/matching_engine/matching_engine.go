@@ -1,7 +1,6 @@
 package matchingengine
 
 import (
-	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,63 +13,23 @@ const (
 )
 
 type MatchingEngine struct {
-	OrderBook *OrderBook
+	orderBook *OrderBook
 }
 
-func NewMatchingEngine() *MatchingEngine {
+func NewMatchingEngine(orderBook *OrderBook) *MatchingEngine {
 	return &MatchingEngine{
-		OrderBook: NewOrderBook(),
+		orderBook: orderBook,
 	}
 }
 
-func (me *MatchingEngine) CancelOrder(ctx context.Context, orderID string) events.MatchingData {
-	var matching events.MatchingData
-
-	// handle incoming order
-	matching.Order = events.OrderCancelEvent{
-		ID: orderID,
-	}
-
-	// handle matching
-	me.OrderBook.RemoveOrder(orderID)
-
-	// Get top ticks
-	matching.TopBuy = me.GetTopTicks(SideBUY, TOP_TICK_NUMBER)
-	matching.TopSell = me.GetTopTicks(SideSELL, TOP_TICK_NUMBER)
-
-	return matching
+func (me *MatchingEngine) CancelOrder(orderID string) error {
+	return me.orderBook.RemoveOrder(orderID)
 }
 
-func (me *MatchingEngine) PlaceOrder(ctx context.Context, order *Order) events.MatchingData {
-	var matching events.MatchingData
-
-	// handle incoming order
-	matching.Order = events.OrderCreateEvent{
-		ID:                order.ID,
-		Symbol:            order.Symbol,
-		Side:              events.Side(order.Side),
-		Price:             order.Price,
-		Quantity:          order.Quantity,
-		RemainingQuantity: order.Quantity,
-		CanceledQuantity:  0,
-		CreatedAt:         order.CreatedAt,
-		UpdatedAt:         order.UpdatedAt,
-	}
-
-	// handle matching
-	matching.Transactions = me.match(order)
-
-	// Get top ticks
-	matching.TopBuy = me.GetTopTicks(SideBUY, TOP_TICK_NUMBER)
-	matching.TopSell = me.GetTopTicks(SideSELL, TOP_TICK_NUMBER)
-
-	return matching
-}
-
-func (me *MatchingEngine) match(order *Order) []events.MatchingTransaction {
+func (me *MatchingEngine) PlaceOrder(order *Order) []events.MatchingTransaction {
 	var transactions []events.MatchingTransaction
 
-	priceLevel := me.OrderBook.GetPriceLevels(GetOppositeSide(order.Side))
+	priceLevel := me.orderBook.GetPriceLevels(GetOppositeSide(order.Side))
 
 	for priceLevel != nil {
 		if me.isPriceMatch(priceLevel.Price, order) {
@@ -102,12 +61,12 @@ func (me *MatchingEngine) match(order *Order) []events.MatchingTransaction {
 		}
 
 		if priceLevel.IsEmpty() {
-			me.OrderBook.RemovePriceLevel(GetOppositeSide(order.Side), priceLevel.Price)
+			me.orderBook.RemovePriceLevel(GetOppositeSide(order.Side), priceLevel.Price)
 		}
 	}
 
 	if order.RemainingQuantity > 0 {
-		me.OrderBook.AddOrder(order)
+		me.orderBook.AddOrder(order)
 	}
 
 	return transactions
@@ -126,9 +85,9 @@ func (me *MatchingEngine) GetTopTicks(side Side, k int8) []events.MatchingTick {
 
 	var priceLevel *PriceLevel
 	if side == SideBUY {
-		priceLevel = me.OrderBook.buyHead.Next
+		priceLevel = me.orderBook.buyHead.Next
 	} else {
-		priceLevel = me.OrderBook.sellHead.Next
+		priceLevel = me.orderBook.sellHead.Next
 	}
 
 	var count int8
