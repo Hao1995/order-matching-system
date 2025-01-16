@@ -107,7 +107,7 @@ func (me *MatchingEngine) match(order *Order) []events.MatchingTransaction {
 	}
 
 	if order.RemainingQuantity > 0 {
-		me.OrderBook.Add(order)
+		me.OrderBook.AddOrder(order)
 	}
 
 	return transactions

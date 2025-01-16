@@ -53,7 +53,7 @@ func (pl *OrderBook) GetPriceLevels(side Side) *PriceLevel {
 }
 
 // Add
-func (pl *OrderBook) Add(order *Order) error {
+func (pl *OrderBook) AddOrder(order *Order) error {
 	var priceLevel *PriceLevel
 	if order.Side == SideBUY {
 		priceLevel = pl.buyHead

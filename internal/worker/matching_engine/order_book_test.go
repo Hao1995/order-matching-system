@@ -58,7 +58,7 @@ func (s *OrderBookTestSuite) TestGetPriceLevels() {
 	}
 }
 
-func (s *OrderBookTestSuite) TestAdd_BuySide() {
+func (s *OrderBookTestSuite) TestAddOrder_BuySide() {
 	// arrange
 	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z08:00")
 	side := SideBUY
@@ -81,10 +81,10 @@ func (s *OrderBookTestSuite) TestAdd_BuySide() {
 	order2.Price = price2
 
 	// act
-	err := orderBook.Add(&order1)
+	err := orderBook.AddOrder(&order1)
 	s.ErrorIs(err, nil)
 
-	err = orderBook.Add(&order2)
+	err = orderBook.AddOrder(&order2)
 	s.ErrorIs(err, nil)
 
 	// assert
@@ -103,7 +103,7 @@ func (s *OrderBookTestSuite) TestAdd_BuySide() {
 	s.Equal(buyPriceLevel, buyNode)
 }
 
-func (s *OrderBookTestSuite) TestAdd_SellSide() {
+func (s *OrderBookTestSuite) TestAddOrder_SellSide() {
 	// arrange
 	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z08:00")
 	side := SideSELL
@@ -126,10 +126,10 @@ func (s *OrderBookTestSuite) TestAdd_SellSide() {
 	order2.Price = price2
 
 	// act
-	err := orderBook.Add(&order1)
+	err := orderBook.AddOrder(&order1)
 	s.ErrorIs(err, nil)
 
-	err = orderBook.Add(&order2)
+	err = orderBook.AddOrder(&order2)
 	s.ErrorIs(err, nil)
 
 	// assert
