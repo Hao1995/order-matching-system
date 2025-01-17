@@ -272,6 +272,7 @@ func (s *OrderBookTestSuite) TestRemovePriceLevel() {
 				_, ok = orderBook.sellNodeByPrice[priceLevel.Price]
 			}
 			s.Equal(tail, head.Next)
+			s.True(tail.IsDummyNode)
 			s.False(ok)
 		})
 	}

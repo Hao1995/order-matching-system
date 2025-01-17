@@ -28,10 +28,14 @@ func NewOrderBook() *OrderBook {
 	headBuyPriceLevel, tailBuyPriceLevel := NewPriceLevel(math.MaxFloat64, SideBUY), NewPriceLevel(0.0, SideBUY)
 	headBuyPriceLevel.Next = tailBuyPriceLevel
 	tailBuyPriceLevel.Prev = headBuyPriceLevel
+	headBuyPriceLevel.IsDummyNode = true
+	tailBuyPriceLevel.IsDummyNode = true
 
 	headSellPriceLevel, tailSellPriceLevel := NewPriceLevel(0.0, SideSELL), NewPriceLevel(math.MaxFloat64, SideSELL)
 	headSellPriceLevel.Next = tailSellPriceLevel
 	tailSellPriceLevel.Prev = headSellPriceLevel
+	headSellPriceLevel.IsDummyNode = true
+	tailSellPriceLevel.IsDummyNode = true
 
 	return &OrderBook{
 		buyHead:             headBuyPriceLevel,

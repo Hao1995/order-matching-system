@@ -173,6 +173,7 @@ func (suite *PriceLevelTestSuite) TestRemove() {
 	// assert
 	suite.ErrorIs(err, nil)
 	suite.Equal(&order2, priceLevel.headOrder.Next)
+	suite.True(order2.Next.IsDummyNode)
 }
 
 func (suite *PriceLevelTestSuite) TestRemove_OrderNotExist() {
