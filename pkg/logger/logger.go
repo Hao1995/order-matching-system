@@ -2,6 +2,7 @@ package logger
 
 import (
 	"log"
+	"os"
 	"sync"
 
 	"go.uber.org/zap"
@@ -15,7 +16,21 @@ var (
 func init() {
 	var err error
 	once.Do(func() {
-		logger, err = zap.NewProduction()
+		env := os.Getenv("APP_ENV")
+		var cfg zap.Config
+
+		switch env {
+		case "production":
+			cfg = zap.NewProductionConfig()
+		case "development":
+			cfg = zap.NewDevelopmentConfig()
+		default:
+			cfg = zap.NewDevelopmentConfig()
+			cfg.OutputPaths = []string{
+				"stdout",
+			}
+		}
+		logger, err = cfg.Build()
 	})
 
 	if err != nil {
