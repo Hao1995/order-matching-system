@@ -173,6 +173,7 @@ func (s *MatchingEngineTestSuite) TestPlaceOrder_BuyOrder_MatchFromLowerPriceToH
 	orderBook.AddOrder(&sellOrder1)
 	orderBook.AddOrder(&sellOrder2)
 	orderBook.AddOrder(&sellOrder3)
+	orderBook.AddOrder(&sellOrder4)
 
 	// init buy order
 	buyOrder1 := sellOrder1
@@ -198,8 +199,8 @@ func (s *MatchingEngineTestSuite) TestPlaceOrder_BuyOrder_MatchFromLowerPriceToH
 	matchingEvents := matchingEngine.PlaceOrder(&buyOrder1)
 
 	// assert
-	// assert matched orders not exist
-	s.Equal(&sellOrder4, orderBook.sellHead.Next)
+	// assert only left non-matched order
+	s.Equal(&sellOrder4, orderBook.sellHead.Next.headOrder.Next)
 	// assert matching events
 	s.Equal(3, len(matchingEvents))
 	s.Equal(events.MatchingTransaction{
@@ -354,7 +355,7 @@ func (s *MatchingEngineTestSuite) TestPlaceOrder_SellOrder_MatchFromHigherPriceT
 
 	// assert
 	// assert matched orders not exist
-	s.Equal(orderBook.sellTail, orderBook.sellHead.Next)
+	s.Equal(orderBook.buyTail, orderBook.buyHead.Next)
 	// assert matching events
 	s.Equal(3, len(matchingEvents))
 	s.Equal(events.MatchingTransaction{
@@ -386,4 +387,43 @@ func (s *MatchingEngineTestSuite) TestPlaceOrder_SellOrder_MatchFromHigherPriceT
 	}, matchingEvents[2])
 	// assert sell order is fully matched
 	s.Equal(int64(0), sellOrder1.RemainingQuantity)
+}
+
+func (s *MatchingEngineTestSuite) TestPlaceOrder_SellOrder_InsertOrderWhenNoMatchedOrders() {
+	// arrange
+	nowTime, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z08:00")
+
+	// add sell orders
+	buyOrder1 := Order{
+		ID:                uuid.NewString(),
+		Symbol:            s.symbol,
+		Side:              SideBUY,
+		Price:             30,
+		Quantity:          10,
+		RemainingQuantity: 10,
+		CanceledQuantity:  0,
+		CreatedAt:         nowTime,
+		UpdatedAt:         nowTime,
+	}
+
+	orderBook := NewOrderBook()
+	orderBook.AddOrder(&buyOrder1)
+
+	// init sell order
+	sellOrder1 := buyOrder1
+	sellOrder1.ID = uuid.NewString()
+	sellOrder1.Side = SideSELL
+	sellOrder1.Price = 50
+
+	// act
+	matchingEngine := NewMatchingEngine(orderBook)
+	matchingEvents := matchingEngine.PlaceOrder(&sellOrder1)
+
+	// assert
+	// assert buy orders still exist
+	s.Equal(&buyOrder1, orderBook.buyHead.Next.headOrder.Next)
+	// assert incoming order exist in order book
+	s.Equal(&sellOrder1, orderBook.sellHead.Next.headOrder.Next)
+	// assert no matched events
+	s.Equal(0, len(matchingEvents))
 }

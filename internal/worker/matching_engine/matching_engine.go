@@ -5,11 +5,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 
 	"github.com/Hao1995/order-matching-system/internal/common/models/events"
 	"github.com/Hao1995/order-matching-system/pkg/cf"
-	"github.com/Hao1995/order-matching-system/pkg/logger"
 )
 
 const (
@@ -43,22 +41,17 @@ func (me *MatchingEngine) CancelOrder(orderID string) error {
 }
 
 func (me *MatchingEngine) PlaceOrder(order *Order) []events.MatchingTransaction {
-	logger.Debug("handling order ...", zap.Any("order", *order))
 
 	var transactions []events.MatchingTransaction
 
 	priceLevel := me.orderBook.GetPriceLevels(GetOppositeSide(order.Side))
 
 	for !priceLevel.IsDummyNode {
-		logger.Debug("valid priceLevel\n", zap.Any("priceLevel", *priceLevel))
-
 		if !me.isPriceMatch(priceLevel.Price, order) {
-			logger.Debug("price is not matched, break")
+			break
 		}
 
 		targetOrder := priceLevel.headOrder.Next
-		logger.Debug("get targetOrder", zap.Any("targetOrder", *targetOrder))
-
 		for !targetOrder.IsDummyNode && order.RemainingQuantity > 0 {
 			dealQuantity := min(order.RemainingQuantity, targetOrder.Quantity)
 
@@ -77,30 +70,21 @@ func (me *MatchingEngine) PlaceOrder(order *Order) []events.MatchingTransaction 
 			}
 			transactions = append(transactions, transaction)
 
-			targetOrderID := targetOrder.ID
-			logger.Debug("match!", zap.Any("transaction", transaction))
-
 			if targetOrder.RemainingQuantity == 0 {
-				logger.Debug("remove targetOrder", zap.String("targetOrderID", targetOrderID))
-				priceLevel.Remove(targetOrderID)
+				priceLevel.Remove(targetOrder.ID)
 				targetOrder = targetOrder.Next
-			} else {
-				logger.Debug("current order is fully matched", zap.Int64("remainingQuantity", order.RemainingQuantity))
 			}
 		}
 
 		if priceLevel.IsEmpty() {
-			logger.Debug("current priceLevel is fully matched, remove it", zap.Float64("price", priceLevel.Price))
 			me.orderBook.RemovePriceLevel(GetOppositeSide(order.Side), priceLevel.Price)
 			priceLevel = priceLevel.Next
 		} else {
-			logger.Debug("the remaining orders in the current priceLevel can't be matched, break", zap.Float64("price", priceLevel.Price))
 			break
 		}
 	}
 
 	if order.RemainingQuantity > 0 {
-		logger.Debug("add current order into the OrderBook", zap.Int64("remainingQuantity", order.RemainingQuantity))
 		me.orderBook.AddOrder(order)
 	}
 
@@ -109,9 +93,9 @@ func (me *MatchingEngine) PlaceOrder(order *Order) []events.MatchingTransaction 
 
 func (me *MatchingEngine) isPriceMatch(targetPrice float64, order *Order) bool {
 	if order.Side == SideBUY {
-		return targetPrice <= order.Price
-	} else {
 		return order.Price >= targetPrice
+	} else {
+		return order.Price <= targetPrice
 	}
 }
 
