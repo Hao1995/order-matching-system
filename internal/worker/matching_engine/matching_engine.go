@@ -1,12 +1,14 @@
 package matchingengine
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	"github.com/Hao1995/order-matching-system/internal/common/models/events"
+	"github.com/Hao1995/order-matching-system/pkg/cf"
 	"github.com/Hao1995/order-matching-system/pkg/logger"
 )
 
@@ -22,6 +24,8 @@ var (
 	now = func() time.Time {
 		return time.Now()
 	}
+
+	ErrNoBuyOrder = errors.New("no buy order exist")
 )
 
 type MatchingEngine struct {
@@ -65,9 +69,9 @@ func (me *MatchingEngine) PlaceOrder(order *Order) []events.MatchingTransaction 
 			transaction := events.MatchingTransaction{
 				ID:          getUUID(),
 				Symbol:      order.Symbol,
-				BuyOrderID:  order.ID,
-				SellOrderID: targetOrder.ID,
-				Price:       priceLevel.Price,
+				BuyOrderID:  me.getOrderBySide(SideBUY, order, targetOrder).ID,
+				SellOrderID: me.getOrderBySide(SideSELL, order, targetOrder).ID,
+				Price:       cf.Min(order.Price, targetOrder.Price),
 				Quantity:    dealQuantity,
 				CreatedAt:   now(),
 			}
@@ -111,6 +115,14 @@ func (me *MatchingEngine) isPriceMatch(targetPrice float64, order *Order) bool {
 	}
 }
 
+func (me *MatchingEngine) getOrderBySide(side Side, order1, order2 *Order) *Order {
+	if order1.Side == side {
+		return order1
+	} else {
+		return order2
+	}
+}
+
 func (me *MatchingEngine) GetTopTicks(side Side, k int8) []events.MatchingTick {
 	var topTicks []events.MatchingTick
 
@@ -132,11 +144,4 @@ func (me *MatchingEngine) GetTopTicks(side Side, k int8) []events.MatchingTick {
 	}
 
 	return topTicks
-}
-
-func min(a, b int64) int64 {
-	if a < b {
-		return a
-	}
-	return b
 }

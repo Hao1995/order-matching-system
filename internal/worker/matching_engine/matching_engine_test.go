@@ -294,3 +294,96 @@ func (s *MatchingEngineTestSuite) TestPlaceOrder_BuyOrder_InsertRemainingOrderTo
 	s.Equal(&buyOrder1, orderBook.buyHead.Next.headOrder.Next)
 	s.Equal(int64(20), buyOrder1.RemainingQuantity)
 }
+
+func (s *MatchingEngineTestSuite) TestPlaceOrder_SellOrder_MatchFromHigherPriceToLowerPrice() {
+	// arrange
+	nowTime, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z08:00")
+
+	// add sell orders
+	buyOrder1 := Order{
+		ID:                uuid.NewString(),
+		Symbol:            s.symbol,
+		Side:              SideBUY,
+		Price:             20,
+		Quantity:          10,
+		RemainingQuantity: 10,
+		CanceledQuantity:  0,
+		CreatedAt:         nowTime,
+		UpdatedAt:         nowTime,
+	}
+
+	buyOrder2 := buyOrder1
+	buyOrder2.ID = uuid.NewString()
+	buyOrder2.Price = 30
+	buyOrder2.CreatedAt = nowTime.Add(1 * time.Minute)
+	buyOrder2.UpdatedAt = nowTime.Add(1 * time.Minute)
+
+	buyOrder3 := buyOrder1
+	buyOrder3.ID = uuid.NewString()
+	buyOrder3.Price = 20
+	buyOrder3.CreatedAt = nowTime.Add(1 * time.Minute)
+	buyOrder3.UpdatedAt = nowTime.Add(1 * time.Minute)
+
+	orderBook := NewOrderBook()
+	orderBook.AddOrder(&buyOrder1)
+	orderBook.AddOrder(&buyOrder2)
+	orderBook.AddOrder(&buyOrder3)
+
+	// init sell order
+	sellOrder1 := buyOrder1
+	sellOrder1.ID = uuid.NewString()
+	sellOrder1.Side = SideSELL
+	sellOrder1.Price = 20
+	sellOrder1.Quantity = 30
+	sellOrder1.RemainingQuantity = 30
+
+	// mock uuid
+	uuidStr := uuid.NewString()
+	getUUID = func() string {
+		return uuidStr
+	}
+
+	// mock now
+	now = func() time.Time {
+		return nowTime
+	}
+
+	// act
+	matchingEngine := NewMatchingEngine(orderBook)
+	matchingEvents := matchingEngine.PlaceOrder(&sellOrder1)
+
+	// assert
+	// assert matched orders not exist
+	s.Equal(orderBook.sellTail, orderBook.sellHead.Next)
+	// assert matching events
+	s.Equal(3, len(matchingEvents))
+	s.Equal(events.MatchingTransaction{
+		ID:          uuidStr,
+		Symbol:      s.symbol,
+		BuyOrderID:  buyOrder2.ID,
+		SellOrderID: sellOrder1.ID,
+		Price:       sellOrder1.Price,
+		Quantity:    buyOrder2.Quantity,
+		CreatedAt:   nowTime,
+	}, matchingEvents[0])
+	s.Equal(events.MatchingTransaction{
+		ID:          uuidStr,
+		Symbol:      s.symbol,
+		BuyOrderID:  buyOrder1.ID,
+		SellOrderID: sellOrder1.ID,
+		Price:       sellOrder1.Price,
+		Quantity:    buyOrder1.Quantity,
+		CreatedAt:   nowTime,
+	}, matchingEvents[1])
+	s.Equal(events.MatchingTransaction{
+		ID:          uuidStr,
+		Symbol:      s.symbol,
+		BuyOrderID:  buyOrder3.ID,
+		SellOrderID: sellOrder1.ID,
+		Price:       sellOrder1.Price,
+		Quantity:    buyOrder3.Quantity,
+		CreatedAt:   nowTime,
+	}, matchingEvents[2])
+	// assert sell order is fully matched
+	s.Equal(int64(0), sellOrder1.RemainingQuantity)
+}
