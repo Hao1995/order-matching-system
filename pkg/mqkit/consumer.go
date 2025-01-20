@@ -5,6 +5,6 @@ import (
 )
 
 type Consumer interface {
-	Consume(ctx context.Context, handler func(key []byte, val []byte) error) error
+	Consume(ctx context.Context, handler func(val []byte) error) error
 	Close() error
 }

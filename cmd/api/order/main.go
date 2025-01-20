@@ -10,7 +10,6 @@ import (
 
 	"github.com/caarlos0/env/v11"
 	"github.com/gin-gonic/gin"
-	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 
 	"github.com/Hao1995/order-matching-system/internal/api/order"
@@ -32,19 +31,12 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 
 	// Kafka
-	w := &kafka.Writer{
-		Addr:                   kafka.TCP(cfg.Kafka.Brokers...),
-		Topic:                  cfg.Kafka.Topic,
-		Balancer:               &kafka.LeastBytes{},
-		AllowAutoTopicCreation: true,
-	}
-	logger.Info("success create a Kafka writer", zap.String("topic", cfg.Kafka.Topic))
-	defer w.Close()
-
-	kafkaProducer := mqkit.NewKafkaProducer(w)
+	kafkaProducer := mqkit.NewKafkaProducer(cfg.Kafka.Brokers, cfg.App.OrderTopic, []byte(cfg.App.Symbol))
+	defer kafkaProducer.Close()
+	logger.Info("initiate a Kafka producer successfully", zap.String("topic", cfg.App.OrderTopic), zap.String("symbol", cfg.App.Symbol))
 
 	// Init Gin Router
-	hlr := order.NewHandler(kafkaProducer, cfg.Kafka.Topic)
+	hlr := order.NewHandler(kafkaProducer, cfg.App.OrderTopic)
 	router := gin.Default()
 	order.RegisterRoutes(router, hlr)
 

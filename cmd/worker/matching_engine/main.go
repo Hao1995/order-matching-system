@@ -4,21 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/caarlos0/env/v11"
-	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 
 	"github.com/Hao1995/order-matching-system/internal/common/models/events"
 	matchingengine "github.com/Hao1995/order-matching-system/internal/worker/matching_engine"
 	"github.com/Hao1995/order-matching-system/pkg/logger"
 	"github.com/Hao1995/order-matching-system/pkg/mqkit"
+	"github.com/Hao1995/order-matching-system/pkg/pubsubkit"
 )
 
 var (
@@ -39,26 +37,25 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// Kafka
-	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: cfg.Kafka.Brokers,
-		Topic:   cfg.Kafka.Topic,
-		MaxWait: 3 * time.Second,
-	})
-	defer r.Close()
-	consumer := mqkit.NewKafkaConsumer(r)
+	// Message queue
+	consumer := mqkit.NewKafkaConsumer(cfg.Kafka.Brokers, cfg.App.OrderTopic)
+	defer consumer.Close()
+
+	// Pub/Sub
+	publisher := pubsubkit.NewKafkaPublisher(cfg.Kafka.Brokers, cfg.App.MatchingTopic)
+	defer publisher.Close()
 
 	// OrderBook
 	orderBook := matchingengine.NewOrderBook()
 
 	// Matcher
 	matcher := matchingengine.NewMatcher(orderBook)
-	logger.Info("success create a Kafka reader", zap.String("topic", cfg.Kafka.Topic))
+	logger.Info("success create a Kafka reader", zap.String("topic", cfg.App.OrderTopic))
 
 	go func() {
 		for {
 			// Consume event
-			handler := func(key []byte, val []byte) error {
+			handler := func(val []byte) error {
 				var event events.Event
 				if err := json.Unmarshal(val, &event); err != nil {
 					logger.Error("failed to unmarshal event", zap.Error(err), zap.ByteString("val", val))
@@ -95,11 +92,41 @@ func main() {
 						SellTicks:    convertToTickEvents(sellTicks),
 					}
 
-					// @todo: ack and publish to matching Topic
-					fmt.Println(matchingEvent)
+					// Publish matching event
+					matchingMsg, err := json.Marshal(matchingEvent)
+					if err != nil {
+						logger.Error("failed to marshal matching event", zap.Error(err), zap.Any("matchingEvent", matchingEvent))
+						return err
+					}
+
+					if err := publisher.Publish(matchingMsg); err != nil {
+						logger.Error("failed to publish matching event", zap.Error(err))
+						return err
+					}
 				case events.EventTypeCancelOrder:
 					if err := matcher.CancelOrder(data.ID); err != nil {
 						logger.Error("failed to cancel order", zap.Error(err))
+					}
+
+					buyTicks, sellTicks := matcher.GetTopTicks(int8(cfg.TickNum))
+
+					matchingEvent := events.MatchingEvent{
+						Type:      events.MatchingEventTypeCancel,
+						Order:     data,
+						BuyTicks:  convertToTickEvents(buyTicks),
+						SellTicks: convertToTickEvents(sellTicks),
+					}
+
+					// Publish matching event
+					matchingMsg, err := json.Marshal(matchingEvent)
+					if err != nil {
+						logger.Error("failed to marshal matching event", zap.Error(err), zap.Any("matchingEvent", matchingEvent))
+						return err
+					}
+
+					if err := publisher.Publish(matchingMsg); err != nil {
+						logger.Error("failed to publish matching event", zap.Error(err))
+						return err
 					}
 				}
 				return nil

@@ -2,6 +2,7 @@ package mqkit
 
 import (
 	"context"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -12,21 +13,24 @@ type KafkaConsumer struct {
 }
 
 // NewKafkaConsumer creates a new KafkaConsumer
-func NewKafkaConsumer(reader *kafka.Reader) Consumer {
+func NewKafkaConsumer(brokers []string, topic string) Consumer {
 	return &KafkaConsumer{
-		reader: reader,
+		reader: kafka.NewReader(kafka.ReaderConfig{
+			Brokers: brokers,
+			Topic:   topic,
+			MaxWait: 3 * time.Second,
+		}),
 	}
 }
 
 // Consume sends a message to the Kafka topic.
-func (op *KafkaConsumer) Consume(ctx context.Context, handler func(key []byte, val []byte) error) error {
-
+func (op *KafkaConsumer) Consume(ctx context.Context, handler func(val []byte) error) error {
 	msg, err := op.reader.FetchMessage(ctx)
 	if err != nil {
 		return err
 	}
 
-	if err := handler(msg.Key, msg.Value); err != nil {
+	if err := handler(msg.Value); err != nil {
 		return err
 	}
 

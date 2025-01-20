@@ -12,9 +12,11 @@ type Config struct {
 type App struct {
 	Name string `env:"NAME,required"`
 	Port string `env:"PORT,required"`
+
+	OrderTopic    string `env:"ORDER_TOPIC,required"`
+	MatchingTopic string `env:"MATCHING_TOPIC,required"`
 }
 
 type Kafka struct {
 	Brokers []string `env:"BROKERS,required"`
-	Topic   string   `env:"TOPIC,required"`
 }

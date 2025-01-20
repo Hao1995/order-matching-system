@@ -16,19 +16,18 @@ type KafkaPubSub struct {
 }
 
 // NewKafkaPublisher creates a new Kafka publisher
-func NewKafkaPublisher(brokers []string) Publisher {
+func NewKafkaPublisher(brokers []string, topic string) Publisher {
 	return &KafkaPubSub{
 		Writer: &kafka.Writer{
-			Addr: kafka.TCP(brokers...),
+			Addr:  kafka.TCP(brokers...),
+			Topic: topic,
 		},
 	}
 }
 
 // Publish sends a message to a Kafka topic
-func (k *KafkaPubSub) Publish(topic string, key, value []byte) error {
+func (k *KafkaPubSub) Publish(value []byte) error {
 	return k.Writer.WriteMessages(context.Background(), kafka.Message{
-		Topic: topic,
-		Key:   key,
 		Value: value,
 	})
 }
@@ -45,7 +44,7 @@ func NewKafkaSubscriber(brokers []string, topic string, groupID string) Subscrib
 }
 
 // Subscribe listens to messages from a Kafka topic
-func (k *KafkaPubSub) Subscribe(topic string, handler func(key, value []byte) error) error {
+func (k *KafkaPubSub) Subscribe(handler func(value []byte) error) error {
 	k.Reader.SetOffset(kafka.LastOffset)
 
 	for {
@@ -53,7 +52,7 @@ func (k *KafkaPubSub) Subscribe(topic string, handler func(key, value []byte) er
 		if err != nil {
 			return err
 		}
-		if err := handler(message.Key, message.Value); err != nil {
+		if err := handler(message.Value); err != nil {
 			log.Printf("Error processing message: %v", err)
 		}
 
