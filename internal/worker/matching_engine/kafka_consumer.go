@@ -22,14 +22,26 @@ func NewKafkaConsumer(reader *kafka.Reader) Consumer {
 }
 
 // Consume sends a message to the Kafka topic.
-func (op *KafkaConsumer) Consume(ctx context.Context) ([]byte, error) {
-	msg, err := op.reader.ReadMessage(ctx)
+func (op *KafkaConsumer) Consume(ctx context.Context, handler func(key []byte, val []byte) error) error {
+
+	msg, err := op.reader.FetchMessage(ctx)
 	if err != nil {
 		logger.Error("failed to write message", zap.Error(err))
-		return []byte{}, err
+		return err
 	}
 	logger.Info("received message", zap.ByteString("val", msg.Value))
-	return msg.Value, nil
+
+	if err := handler(msg.Key, msg.Value); err != nil {
+		logger.Error("failed to handle event", zap.Error(err))
+		return err
+	}
+
+	if err := op.reader.CommitMessages(ctx, msg); err != nil {
+		logger.Error("failed to commit message", zap.Error(err))
+		return err
+	}
+
+	return nil
 }
 
 // Close closes the Kafka reader.

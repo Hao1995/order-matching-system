@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os/signal"
@@ -17,6 +18,10 @@ import (
 	"github.com/Hao1995/order-matching-system/internal/common/models/events"
 	matchingengine "github.com/Hao1995/order-matching-system/internal/worker/matching_engine"
 	"github.com/Hao1995/order-matching-system/pkg/logger"
+)
+
+var (
+	ErrUnknownEventType = errors.New("unknown event type")
 )
 
 func init() {
@@ -52,16 +57,57 @@ func main() {
 	go func() {
 		for {
 			// Consume event
-			var event events.Event
+			handler := func(key []byte, val []byte) error {
+				var event events.Event
+				if err := json.Unmarshal(val, &event); err != nil {
+					logger.Error("failed to unmarshal event", zap.Error(err), zap.ByteString("val", val))
+					return err
+				}
+
+				orderEvent, ok := event.Data.(events.OrderEvent)
+				if !ok {
+					logger.Error("unknown event type, skip the event", zap.Any("data", event.Data))
+					return ErrUnknownEventType
+				}
+
+				data := orderEvent
+				switch event.EventType {
+				case events.EventTypeCreateOrder:
+					order := matchingengine.Order{
+						ID:        data.ID,
+						Symbol:    data.Symbol,
+						Type:      matchingengine.OrderType(data.Type),
+						Price:     data.Price,
+						Quantity:  data.Quantity,
+						CreatedAt: data.CreatedAt,
+					}
+
+					transactions := matcher.MatchOrder(order)
+
+					buyTicks, sellTicks := matcher.GetTopTicks(int8(cfg.TickNum))
+
+					matchingEvent := events.MatchingEvent{
+						Type:         events.MatchingEventTypeMatching,
+						Order:        data,
+						Transactions: convertToTransactionEvents(transactions),
+						BuyTicks:     convertToTickEvents(buyTicks),
+						SellTicks:    convertToTickEvents(sellTicks),
+					}
+
+					// @todo: ack and publish to matching Topic
+					fmt.Println(matchingEvent)
+				case events.EventTypeCancelOrder:
+					if err := matcher.CancelOrder(data.ID); err != nil {
+						logger.Error("failed to cancel order", zap.Error(err))
+					}
+				}
+				return nil
+			}
+
 			if err := retry.Do(
 				func() error {
-					val, err := consumer.Consume(context.Background())
-					if err != nil {
+					if err := consumer.Consume(context.Background(), handler); err != nil {
 						logger.Warn("failed to consume event from Kafka", zap.Error(err))
-						return err
-					}
-					if err := json.Unmarshal(val, &event); err != nil {
-						logger.Warn("failed to unmarshal event", zap.Error(err), zap.ByteString("val", val))
 						return err
 					}
 					return nil
@@ -71,40 +117,6 @@ func main() {
 				// Temporary leave end the service
 				logger.Error("retry error achieve the max limit")
 				return
-			}
-
-			orderEvent, ok := event.Data.(events.OrderEvent)
-			if !ok {
-				logger.Error("unexpected event order type, skip the event", zap.Any("data", event.Data))
-				continue
-			}
-
-			data := orderEvent
-			switch event.EventType {
-			case events.EventTypeCreateOrder:
-				order := matchingengine.Order{
-					ID:        data.ID,
-					Symbol:    data.Symbol,
-					Type:      matchingengine.OrderType(data.Type),
-					Price:     data.Price,
-					Quantity:  data.Quantity,
-					CreatedAt: data.CreatedAt,
-				}
-
-				transactions := matcher.MatchOrder(order)
-
-				buyTicks, sellTicks := matcher.GetTopTicks(int8(cfg.TickNum))
-
-				matchingEvent := events.MatchingEvent{
-					Type:         events.MatchingEventTypeMatching,
-					Order:        data,
-					Transactions: convertToTransactionEvents(transactions),
-					BuyTicks:     convertToTickEvents(buyTicks),
-					SellTicks:    convertToTickEvents(sellTicks),
-				}
-
-				// @todo: ack and publish to matching Topic
-				fmt.Println(matchingEvent)
 			}
 		}
 	}()
