@@ -16,6 +16,8 @@ const (
 	EventTypeCreateOrder EventType = "CreateOrder"
 	// EventTypeCancelOrder is a EventType of type CancelOrder.
 	EventTypeCancelOrder EventType = "CancelOrder"
+	// EventTypeMatching is a EventType of type Matching.
+	EventTypeMatching EventType = "Matching"
 )
 
 var ErrInvalidEventType = errors.New("not a valid EventType")
@@ -35,6 +37,7 @@ func (x EventType) IsValid() bool {
 var _EventTypeValue = map[string]EventType{
 	"CreateOrder": EventTypeCreateOrder,
 	"CancelOrder": EventTypeCancelOrder,
+	"Matching":    EventTypeMatching,
 }
 
 // ParseEventType attempts to convert a string to a EventType.

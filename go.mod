@@ -3,10 +3,12 @@ module github.com/Hao1995/order-matching-system
 go 1.22.1
 
 require (
+	github.com/avast/retry-go/v4 v4.6.0
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.3.0
 	github.com/segmentio/kafka-go v0.4.47
+	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 )
 
@@ -33,7 +35,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pierrec/lz4/v4 v4.1.15 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	go.uber.org/multierr v1.10.0 // indirect

@@ -7,40 +7,24 @@ import "time"
 type MatchingEventType string
 
 type MatchingEvent struct {
-	EventType MatchingEventType
-	Data      interface{}
+	Type         MatchingEventType  `json:"type"`
+	Order        OrderEvent         `json:"order"`
+	Transactions []TransactionEvent `json:"transactions,omitempty"`
+	BuyTicks     []TickEvent        `json:"buy_ticks"`
+	SellTicks    []TickEvent        `json:"sell_ticks"`
 }
 
-type MatchingOrder struct {
-	ID                string
-	Symbol            string
-	OrderType         OrderType
-	Price             float64
-	Quantity          int64
-	RemainingQuantity int64
-	CanceledQuantity  int64
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+type TransactionEvent struct {
+	ID          string    `jsno:"id"`
+	Symbol      string    `jsno:"symbol"`
+	BuyOrderID  string    `jsno:"buy_order_id"`
+	SellOrderID string    `jsno:"sell_order_id"`
+	Price       float64   `jsno:"price"`
+	Quantity    int64     `jsno:"quantity"`
+	CreatedAt   time.Time `jsno:"created_at"`
 }
 
-type MatchingTransaction struct {
-	ID          string
-	Symbol      string
-	BuyOrderID  string
-	SellOrderID string
-	Price       float64
-	Quantity    int64
-	CreatedAt   time.Time
-}
-
-type MatchingTick struct {
-	Price    float64
-	Quantity int64
-}
-
-type MatchingData struct {
-	Order        interface{}
-	Transactions []MatchingTransaction
-	TopBuy       []MatchingTick
-	TopSell      []MatchingTick
+type TickEvent struct {
+	Price    float64 `json:"price"`
+	Quantity int64   `json:"quantity"`
 }

@@ -6,7 +6,7 @@ import "time"
 // ENUM(Buy, Sell)
 type OrderType int
 
-// ENUM(CreateOrder, CancelOrder)
+// ENUM(CreateOrder, CancelOrder, Matching)
 type EventType string
 
 type Event struct {
