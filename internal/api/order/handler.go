@@ -12,6 +12,7 @@ import (
 	"github.com/Hao1995/order-matching-system/internal/api/order/requests"
 	"github.com/Hao1995/order-matching-system/internal/common/models/events"
 	"github.com/Hao1995/order-matching-system/pkg/logger"
+	"github.com/Hao1995/order-matching-system/pkg/mqkit"
 )
 
 var (
@@ -21,11 +22,11 @@ var (
 )
 
 type Handler struct {
-	producer Producer
+	producer mqkit.Producer
 	topic    string
 }
 
-func NewHandler(p Producer, topic string) *Handler {
+func NewHandler(p mqkit.Producer, topic string) *Handler {
 	return &Handler{
 		producer: p,
 		topic:    topic,

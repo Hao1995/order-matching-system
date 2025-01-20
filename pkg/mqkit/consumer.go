@@ -1,4 +1,4 @@
-package matchingengine
+package mqkit
 
 import (
 	"context"

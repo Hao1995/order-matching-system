@@ -15,6 +15,7 @@ import (
 
 	"github.com/Hao1995/order-matching-system/internal/api/order"
 	"github.com/Hao1995/order-matching-system/pkg/logger"
+	"github.com/Hao1995/order-matching-system/pkg/mqkit"
 )
 
 func init() {
@@ -40,7 +41,7 @@ func main() {
 	logger.Info("success create a Kafka writer", zap.String("topic", cfg.Kafka.Topic))
 	defer w.Close()
 
-	kafkaProducer := order.NewKafkaProducer(w)
+	kafkaProducer := mqkit.NewKafkaProducer(w)
 
 	// Init Gin Router
 	hlr := order.NewHandler(kafkaProducer, cfg.Kafka.Topic)

@@ -18,6 +18,7 @@ import (
 	"github.com/Hao1995/order-matching-system/internal/common/models/events"
 	matchingengine "github.com/Hao1995/order-matching-system/internal/worker/matching_engine"
 	"github.com/Hao1995/order-matching-system/pkg/logger"
+	"github.com/Hao1995/order-matching-system/pkg/mqkit"
 )
 
 var (
@@ -45,7 +46,7 @@ func main() {
 		MaxWait: 3 * time.Second,
 	})
 	defer r.Close()
-	consumer := matchingengine.NewKafkaConsumer(r)
+	consumer := mqkit.NewKafkaConsumer(r)
 
 	// OrderBook
 	orderBook := matchingengine.NewOrderBook()
