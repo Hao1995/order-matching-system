@@ -2,6 +2,7 @@ package matchingengine
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
@@ -11,8 +12,28 @@ type MatcherTestSuite struct {
 	suite.Suite
 	matcher   *Matcher
 	orderBook *OrderBook
+	symbol    string
+	now       time.Time
+	uuidStr   string
 }
 
+func TestMatcherTestSuite(t *testing.T) {
+	suite.Run(t, new(MatcherTestSuite))
+}
+
+func (suite *MatcherTestSuite) SetupSuite() {
+	suite.symbol = "AAPL"
+	suite.now = time.Date(2025, 1, 15, 18, 0, 0, 0, time.UTC)
+	suite.uuidStr = uuid.NewString()
+
+	now = func() time.Time {
+		return suite.now
+	}
+
+	getUUID = func() string {
+		return suite.uuidStr
+	}
+}
 func (suite *MatcherTestSuite) SetupTest() {
 	suite.orderBook = NewOrderBook()
 	suite.matcher = NewMatcher(suite.orderBook)
@@ -20,11 +41,12 @@ func (suite *MatcherTestSuite) SetupTest() {
 
 func (suite *MatcherTestSuite) TestCancelOrder() {
 	order := Order{
-		ID:                uuid.NewString(),
-		Type:              OrderTypeBuy,
-		Price:             100.0,
-		Quantity:          10,
-		RemainingQuantity: 10,
+		ID:        uuid.NewString(),
+		Symbol:    suite.symbol,
+		Type:      OrderTypeBuy,
+		Price:     100.0,
+		Quantity:  10,
+		CreatedAt: suite.now,
 	}
 
 	suite.orderBook.InsertOrder(order)
@@ -36,125 +58,141 @@ func (suite *MatcherTestSuite) TestCancelOrder() {
 func (suite *MatcherTestSuite) TestMatchOrder_BuyOrder() {
 	// Add a sell order
 	sellOrder := Order{
-		ID:                uuid.NewString(),
-		Type:              OrderTypeSell,
-		Price:             100.0,
-		Quantity:          10,
-		RemainingQuantity: 10,
+		ID:        uuid.NewString(),
+		Symbol:    suite.symbol,
+		Type:      OrderTypeSell,
+		Price:     100.0,
+		Quantity:  10,
+		CreatedAt: suite.now,
 	}
 	suite.orderBook.InsertOrder(sellOrder)
 
 	// Add a buy order
 	buyOrder := Order{
-		ID:                uuid.NewString(),
-		Type:              OrderTypeBuy,
-		Price:             100.0,
-		Quantity:          5,
-		RemainingQuantity: 5,
+		ID:        uuid.NewString(),
+		Symbol:    suite.symbol,
+		Type:      OrderTypeBuy,
+		Price:     100.0,
+		Quantity:  5,
+		CreatedAt: suite.now,
 	}
 
 	transactions := suite.matcher.MatchOrder(buyOrder)
 
 	suite.Equal(1, len(transactions))
-	transaction := transactions[0]
-	suite.Equal(buyOrder.ID, transaction.BuyOrderID)
-	suite.Equal(sellOrder.ID, transaction.SellOrderID)
-	suite.Equal(float64(100.0), transaction.Price)
-	suite.Equal(float64(5), transaction.Quantity)
-	// Verify remaining sell order quantity
-	suite.Equal(float64(5), suite.orderBook.SellLevels.HeadOrders.Order.RemainingQuantity)
+	suite.Equal(Transaction{
+		ID:          getUUID(),
+		Symbol:      suite.symbol,
+		BuyOrderID:  buyOrder.ID,
+		SellOrderID: sellOrder.ID,
+		Price:       100.0,
+		Quantity:    5,
+		CreatedAt:   now(),
+	}, transactions[0])
+	suite.Equal(int64(5), suite.orderBook.SellLevels.HeadOrders.Order.Quantity)
 }
 
 func (suite *MatcherTestSuite) TestMatchOrder_SellOrder() {
 	// Add a buy order
 	buyOrder := Order{
-		ID:       uuid.NewString(),
-		Type:     OrderTypeBuy,
-		Price:    100.0,
-		Quantity: 10,
+		ID:        uuid.NewString(),
+		Symbol:    suite.symbol,
+		Type:      OrderTypeBuy,
+		Price:     100.0,
+		Quantity:  10,
+		CreatedAt: suite.now,
 	}
 	suite.orderBook.InsertOrder(buyOrder)
 
 	// Add a sell order
 	sellOrder := Order{
-		ID:                uuid.NewString(),
-		Type:              OrderTypeSell,
-		Price:             100.0,
-		Quantity:          5,
-		RemainingQuantity: 5,
+		ID:        uuid.NewString(),
+		Symbol:    suite.symbol,
+		Type:      OrderTypeSell,
+		Price:     100.0,
+		Quantity:  5,
+		CreatedAt: suite.now,
 	}
 
 	transactions := suite.matcher.MatchOrder(sellOrder)
 
 	suite.Equal(1, len(transactions))
-	transaction := transactions[0]
-	suite.Equal(buyOrder.ID, transaction.BuyOrderID)
-	suite.Equal(sellOrder.ID, transaction.SellOrderID)
-	suite.Equal(float64(100.0), transaction.Price)
-	suite.Equal(float64(5), transaction.Quantity)
-	// Verify remaining buy order quantity
-	suite.Equal(float64(5), suite.orderBook.BuyLevels.HeadOrders.Order.RemainingQuantity)
+	suite.Equal(Transaction{
+		ID:          getUUID(),
+		Symbol:      suite.symbol,
+		BuyOrderID:  buyOrder.ID,
+		SellOrderID: sellOrder.ID,
+		Price:       100.0,
+		Quantity:    5,
+		CreatedAt:   now(),
+	}, transactions[0])
+	suite.Equal(int64(5), suite.orderBook.BuyLevels.HeadOrders.Order.Quantity)
 }
 
 func (suite *MatcherTestSuite) TestMatchOrder_PartialFill() {
 	// Add a sell order with larger quantity
 	sellOrder := Order{
-		ID:                uuid.NewString(),
-		Type:              OrderTypeSell,
-		Price:             100.0,
-		Quantity:          10,
-		RemainingQuantity: 10,
+		ID:        uuid.NewString(),
+		Symbol:    suite.symbol,
+		Type:      OrderTypeSell,
+		Price:     100.0,
+		Quantity:  5,
+		CreatedAt: suite.now,
 	}
 	suite.orderBook.InsertOrder(sellOrder)
 
 	// Add a buy order with smaller quantity
 	buyOrder := Order{
-		ID:                uuid.NewString(),
-		Type:              OrderTypeBuy,
-		Price:             100.0,
-		Quantity:          5,
-		RemainingQuantity: 5,
+		ID:        uuid.NewString(),
+		Symbol:    suite.symbol,
+		Type:      OrderTypeBuy,
+		Price:     100.0,
+		Quantity:  10,
+		CreatedAt: suite.now,
 	}
 
 	transactions := suite.matcher.MatchOrder(buyOrder)
 
 	suite.Equal(1, len(transactions))
-	transaction := transactions[0]
-	suite.Equal(buyOrder.ID, transaction.BuyOrderID)
-	suite.Equal(sellOrder.ID, transaction.SellOrderID)
-	suite.Equal(float64(100.0), transaction.Price)
-	suite.Equal(float64(5), transaction.Quantity)
-	// Verify remaining sell order quantity
-	suite.Equal(float64(5), suite.orderBook.SellLevels.HeadOrders.Order.RemainingQuantity)
+	suite.Equal(Transaction{
+		ID:          getUUID(),
+		Symbol:      suite.symbol,
+		BuyOrderID:  buyOrder.ID,
+		SellOrderID: sellOrder.ID,
+		Price:       100.0,
+		Quantity:    5,
+		CreatedAt:   now(),
+	}, transactions[0])
+	suite.Nil(suite.orderBook.SellLevels)
+	suite.Equal(float64(100.0), suite.orderBook.BuyLevels.HeadOrders.Order.Price)
+	suite.Equal(int64(5), suite.orderBook.BuyLevels.HeadOrders.Order.Quantity)
 }
 
 func (suite *MatcherTestSuite) TestMatchOrder_NoMatch() {
 	// Add a sell order
 	sellOrder := Order{
-		ID:                uuid.NewString(),
-		Type:              OrderTypeSell,
-		Price:             105.0,
-		Quantity:          10,
-		RemainingQuantity: 10,
+		ID:        uuid.NewString(),
+		Symbol:    suite.symbol,
+		Type:      OrderTypeSell,
+		Price:     105.0,
+		Quantity:  10,
+		CreatedAt: suite.now,
 	}
 	suite.orderBook.InsertOrder(sellOrder)
 
 	// Add a buy order with lower price
 	buyOrder := Order{
-		ID:       uuid.NewString(),
-		Type:     OrderTypeBuy,
-		Price:    100.0,
-		Quantity: 5,
+		ID:        uuid.NewString(),
+		Symbol:    suite.symbol,
+		Type:      OrderTypeBuy,
+		Price:     100.0,
+		Quantity:  5,
+		CreatedAt: suite.now,
 	}
 
 	transactions := suite.matcher.MatchOrder(buyOrder)
 
 	suite.Equal(0, len(transactions))
-	// Verify orders are still in their respective levels
-	suite.NotNil(suite.orderBook.SellLevels)
-	suite.NotNil(suite.orderBook.BuyLevels)
-}
-
-func TestMatcherTestSuite(t *testing.T) {
-	suite.Run(t, new(MatcherTestSuite))
+	suite.Equal(sellOrder, suite.orderBook.SellLevels.HeadOrders.Order)
+	suite.Equal(buyOrder, suite.orderBook.BuyLevels.HeadOrders.Order)
 }

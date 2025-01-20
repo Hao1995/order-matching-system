@@ -55,8 +55,8 @@ func (me *Matcher) MatchOrder(order Order) []Transaction {
 	for *matchingLevels != nil && priceComparator(order.Price, (*matchingLevels).Price) {
 		currentLevel := *matchingLevels
 
-		for currentLevel.HeadOrders != nil && order.RemainingQuantity > 0 {
-			matchedQuantity := min(order.RemainingQuantity, currentLevel.HeadOrders.Order.RemainingQuantity)
+		for currentLevel.HeadOrders != nil && order.Quantity > 0 {
+			matchedQuantity := min(order.Quantity, currentLevel.HeadOrders.Order.Quantity)
 
 			transactions = append(transactions, Transaction{
 				ID:     getUUID(),
@@ -77,26 +77,25 @@ func (me *Matcher) MatchOrder(order Order) []Transaction {
 				}(),
 				Price:     currentLevel.Price,
 				Quantity:  matchedQuantity,
-				CreatedAt: time.Now(),
+				CreatedAt: now(),
 			})
 
-			order.RemainingQuantity -= matchedQuantity
-			currentLevel.HeadOrders.Order.RemainingQuantity -= matchedQuantity
-			currentLevel.HeadOrders.Order.UpdatedAt = time.Now()
+			order.Quantity -= matchedQuantity
+			currentLevel.HeadOrders.Order.Quantity -= matchedQuantity
 
-			if currentLevel.HeadOrders.Order.RemainingQuantity == 0 {
+			if currentLevel.HeadOrders.Order.Quantity == 0 {
+				nextOrder := currentLevel.HeadOrders.Next
 				me.orderBook.DeleteOrder(currentLevel.HeadOrders.Order.ID)
+				currentLevel.HeadOrders = nextOrder
 			}
 		}
 
-		if currentLevel.HeadOrders == nil {
-			*matchingLevels = currentLevel.Next
+		if order.Quantity == 0 {
+			break
 		}
 	}
 
-	if order.RemainingQuantity > 0 {
-		order.CreatedAt = now()
-		order.UpdatedAt = now()
+	if order.Quantity > 0 {
 		me.orderBook.InsertOrder(order)
 	}
 

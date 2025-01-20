@@ -32,15 +32,12 @@ type OrderType int
 
 // Order represents a buy or sell order
 type Order struct {
-	ID                string
-	Symbol            string
-	Type              OrderType
-	Price             float64
-	Quantity          int64
-	RemainingQuantity int64
-	CanceledQuantity  int64
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	ID        string
+	Symbol    string
+	Type      OrderType
+	Price     float64
+	Quantity  int64
+	CreatedAt time.Time
 }
 
 type OrderNode struct {
@@ -106,7 +103,7 @@ func (ob *OrderBook) insertOrderToPriceLevel(headPriceLevel *PriceLevel, order O
 		newLevel := &PriceLevel{
 			Type:          order.Type,
 			Price:         order.Price,
-			TotalQuantity: order.RemainingQuantity,
+			TotalQuantity: order.Quantity,
 			HeadOrders:    newOrderNode,
 			TailOrders:    newOrderNode,
 			Next:          headPriceLevel,
@@ -146,7 +143,7 @@ func (ob *OrderBook) insertOrderToPriceLevel(headPriceLevel *PriceLevel, order O
 	newLevel := &PriceLevel{
 		Type:          order.Type,
 		Price:         order.Price,
-		TotalQuantity: order.RemainingQuantity,
+		TotalQuantity: order.Quantity,
 		HeadOrders:    newOrderNode,
 		TailOrders:    newOrderNode,
 		Prev:          prevPriceLevel,
@@ -175,9 +172,7 @@ func (ob *OrderBook) DeleteOrder(orderID string) error {
 	}
 
 	// Adjust total quantity
-	pl.TotalQuantity -= orderNode.Order.RemainingQuantity
-	orderNode.Order.CanceledQuantity += orderNode.Order.RemainingQuantity
-	orderNode.Order.RemainingQuantity = 0
+	pl.TotalQuantity -= orderNode.Order.Quantity
 
 	// Remove OrderNode from the orders linked list
 	if orderNode.Prev != nil {
@@ -191,6 +186,8 @@ func (ob *OrderBook) DeleteOrder(orderID string) error {
 	} else {
 		pl.TailOrders = orderNode.Prev
 	}
+
+	orderNode = nil
 
 	// Remove from orderMap
 	delete(ob.orderMap, orderID)

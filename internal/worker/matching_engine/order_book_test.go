@@ -28,45 +28,33 @@ func (suite *OrderBookTestSuite) TestInsertOrder() {
 	// Test inserting orders with different price levels
 	orders := []Order{
 		{
-			ID:                "order1",
-			Symbol:            suite.symbol,
-			Type:              OrderTypeBuy,
-			Price:             101.0,
-			RemainingQuantity: 5,
-			CanceledQuantity:  0,
-			Quantity:          10,
-			CreatedAt:         suite.now,
-			UpdatedAt:         suite.now,
+			ID:        "order1",
+			Symbol:    suite.symbol,
+			Type:      OrderTypeBuy,
+			Price:     101.0,
+			Quantity:  10,
+			CreatedAt: suite.now,
 		}, {
-			ID:                "order2",
-			Symbol:            suite.symbol,
-			Type:              OrderTypeBuy,
-			Price:             100.0,
-			RemainingQuantity: 10,
-			CanceledQuantity:  0,
-			Quantity:          20,
-			CreatedAt:         suite.now,
-			UpdatedAt:         suite.now,
+			ID:        "order2",
+			Symbol:    suite.symbol,
+			Type:      OrderTypeBuy,
+			Price:     100.0,
+			Quantity:  20,
+			CreatedAt: suite.now,
 		}, {
-			ID:                "order3",
-			Symbol:            suite.symbol,
-			Type:              OrderTypeSell,
-			Price:             102.0,
-			RemainingQuantity: 15,
-			CanceledQuantity:  0,
-			Quantity:          25,
-			CreatedAt:         suite.now,
-			UpdatedAt:         suite.now,
+			ID:        "order3",
+			Symbol:    suite.symbol,
+			Type:      OrderTypeSell,
+			Price:     102.0,
+			Quantity:  25,
+			CreatedAt: suite.now,
 		}, {
-			ID:                "order4",
-			Symbol:            suite.symbol,
-			Type:              OrderTypeSell,
-			Price:             103.0,
-			RemainingQuantity: 20,
-			CanceledQuantity:  0,
-			Quantity:          30,
-			CreatedAt:         suite.now,
-			UpdatedAt:         suite.now,
+			ID:        "order4",
+			Symbol:    suite.symbol,
+			Type:      OrderTypeSell,
+			Price:     103.0,
+			Quantity:  30,
+			CreatedAt: suite.now,
 		},
 	}
 
@@ -79,23 +67,27 @@ func (suite *OrderBookTestSuite) TestInsertOrder() {
 	suite.Equal(102.0, suite.orderBook.SellLevels.Price)
 
 	// Test inserting orders with the same price level
-	duplicateOrder := Order{ID: "order5", Type: OrderTypeBuy, Price: 101.0, RemainingQuantity: 7, CanceledQuantity: 0, Quantity: 7, CreatedAt: suite.now, UpdatedAt: suite.now, Symbol: suite.symbol}
+	duplicateOrder := Order{
+		ID:        "order5",
+		Symbol:    suite.symbol,
+		Type:      OrderTypeBuy,
+		Price:     101.0,
+		Quantity:  7,
+		CreatedAt: suite.now,
+	}
 	suite.orderBook.InsertOrder(duplicateOrder)
-	suite.Equal(int64(12), suite.orderBook.BuyLevels.TotalQuantity)
+	suite.Equal(int64(17), suite.orderBook.BuyLevels.TotalQuantity)
 }
 
 func (suite *OrderBookTestSuite) TestDeleteOrder() {
 	// Test deleting orders that exist
 	order := Order{
-		ID:                "order1",
-		Type:              OrderTypeBuy,
-		Price:             100.0,
-		RemainingQuantity: 10,
-		CanceledQuantity:  0,
-		Quantity:          15,
-		CreatedAt:         suite.now,
-		UpdatedAt:         suite.now,
-		Symbol:            suite.symbol,
+		ID:        "order1",
+		Symbol:    suite.symbol,
+		Type:      OrderTypeBuy,
+		Price:     100.0,
+		Quantity:  15,
+		CreatedAt: suite.now,
 	}
 
 	suite.orderBook.InsertOrder(order)
@@ -112,15 +104,12 @@ func (suite *OrderBookTestSuite) TestDeleteOrder() {
 
 	// Test deleting the only order in a price level
 	order2 := Order{
-		ID:                "order2",
-		Type:              OrderTypeBuy,
-		Price:             101.0,
-		RemainingQuantity: 10,
-		CanceledQuantity:  0,
-		Quantity:          10,
-		CreatedAt:         suite.now,
-		UpdatedAt:         suite.now,
-		Symbol:            suite.symbol,
+		ID:        "order2",
+		Symbol:    suite.symbol,
+		Type:      OrderTypeBuy,
+		Price:     101.0,
+		Quantity:  10,
+		CreatedAt: suite.now,
 	}
 	suite.orderBook.InsertOrder(order2)
 	suite.Equal(101.0, suite.orderBook.BuyLevels.Price)
@@ -131,10 +120,38 @@ func (suite *OrderBookTestSuite) TestDeleteOrder() {
 
 func (suite *OrderBookTestSuite) TestGetTopTicks() {
 	orders := []Order{
-		{ID: "order1", Type: OrderTypeBuy, Price: 101.0, RemainingQuantity: 5, CanceledQuantity: 0, Quantity: 10, CreatedAt: suite.now, UpdatedAt: suite.now, Symbol: suite.symbol},
-		{ID: "order2", Type: OrderTypeBuy, Price: 100.0, RemainingQuantity: 10, CanceledQuantity: 0, Quantity: 20, CreatedAt: suite.now, UpdatedAt: suite.now, Symbol: suite.symbol},
-		{ID: "order3", Type: OrderTypeSell, Price: 102.0, RemainingQuantity: 15, CanceledQuantity: 0, Quantity: 25, CreatedAt: suite.now, UpdatedAt: suite.now, Symbol: suite.symbol},
-		{ID: "order4", Type: OrderTypeSell, Price: 103.0, RemainingQuantity: 20, CanceledQuantity: 0, Quantity: 30, CreatedAt: suite.now, UpdatedAt: suite.now, Symbol: suite.symbol},
+		{
+			ID:        "order1",
+			Symbol:    suite.symbol,
+			Type:      OrderTypeBuy,
+			Price:     101.0,
+			Quantity:  10,
+			CreatedAt: suite.now,
+		},
+		{
+			ID:        "order2",
+			Symbol:    suite.symbol,
+			Type:      OrderTypeBuy,
+			Price:     100.0,
+			Quantity:  20,
+			CreatedAt: suite.now,
+		},
+		{
+			ID:        "order3",
+			Symbol:    suite.symbol,
+			Type:      OrderTypeSell,
+			Price:     102.0,
+			Quantity:  25,
+			CreatedAt: suite.now,
+		},
+		{
+			ID:        "order4",
+			Symbol:    suite.symbol,
+			Type:      OrderTypeSell,
+			Price:     103.0,
+			Quantity:  30,
+			CreatedAt: suite.now,
+		},
 	}
 
 	for _, order := range orders {
@@ -153,7 +170,14 @@ func (suite *OrderBookTestSuite) TestGetTopTicks() {
 
 	// Test retrieving top N ticks with exactly one level
 	suite.orderBook = NewOrderBook()
-	order := Order{ID: "order5", Type: OrderTypeBuy, Price: 105.0, RemainingQuantity: 5, CanceledQuantity: 0, Quantity: 5, CreatedAt: suite.now, UpdatedAt: suite.now, Symbol: suite.symbol}
+	order := Order{
+		ID:        "order5",
+		Symbol:    suite.symbol,
+		Type:      OrderTypeBuy,
+		Price:     105.0,
+		Quantity:  5,
+		CreatedAt: suite.now,
+	}
 	suite.orderBook.InsertOrder(order)
 	buyTicks, sellTicks = suite.orderBook.GetTopTicks(1)
 	suite.Len(buyTicks, 1)
