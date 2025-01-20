@@ -81,27 +81,11 @@ Project: "github.com/Hao1995/order-matching-system"
 │   ├── common
 │   │   └── models
 │   │       └── events
-│   │           ├── order_event.go
-│   │           └── order_event_enum.go
 │   ├── api
 │   │   └── order
-│   │       ├── handler.go
-│   │       └── requests
-│   │           ├── cancel_request.go
-│   │           └── create_request.go
 │   └── worker
 │       ├── matching_engine
-│       │   │── order_book_initializer.go
-│       │   ├── order_consumer.go
-│       │   │── order_repository.go
-│       │   │── matching_engine.go
-│       │   │── matching_producer.go
-│       │   └── models
-│       │       ├── order_book.go
-│       │       └── price_level.go
 │       └── matching_persister
-│           └── repositories
-│               └── matching_repository.go
 ├── docs
 │   ├── system_architecture.md
 │   └── class_uml.md

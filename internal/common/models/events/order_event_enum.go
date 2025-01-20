@@ -12,47 +12,47 @@ import (
 )
 
 const (
-	// OrderEventTypeCREATE is a OrderEventType of type CREATE.
-	OrderEventTypeCREATE OrderEventType = "CREATE"
-	// OrderEventTypeCANCEL is a OrderEventType of type CANCEL.
-	OrderEventTypeCANCEL OrderEventType = "CANCEL"
+	// EventTypeCreateOrder is a EventType of type CreateOrder.
+	EventTypeCreateOrder EventType = "CreateOrder"
+	// EventTypeCancelOrder is a EventType of type CancelOrder.
+	EventTypeCancelOrder EventType = "CancelOrder"
 )
 
-var ErrInvalidOrderEventType = errors.New("not a valid OrderEventType")
+var ErrInvalidEventType = errors.New("not a valid EventType")
 
 // String implements the Stringer interface.
-func (x OrderEventType) String() string {
+func (x EventType) String() string {
 	return string(x)
 }
 
 // IsValid provides a quick way to determine if the typed value is
 // part of the allowed enumerated values
-func (x OrderEventType) IsValid() bool {
-	_, err := ParseOrderEventType(string(x))
+func (x EventType) IsValid() bool {
+	_, err := ParseEventType(string(x))
 	return err == nil
 }
 
-var _OrderEventTypeValue = map[string]OrderEventType{
-	"CREATE": OrderEventTypeCREATE,
-	"CANCEL": OrderEventTypeCANCEL,
+var _EventTypeValue = map[string]EventType{
+	"CreateOrder": EventTypeCreateOrder,
+	"CancelOrder": EventTypeCancelOrder,
 }
 
-// ParseOrderEventType attempts to convert a string to a OrderEventType.
-func ParseOrderEventType(name string) (OrderEventType, error) {
-	if x, ok := _OrderEventTypeValue[name]; ok {
+// ParseEventType attempts to convert a string to a EventType.
+func ParseEventType(name string) (EventType, error) {
+	if x, ok := _EventTypeValue[name]; ok {
 		return x, nil
 	}
-	return OrderEventType(""), fmt.Errorf("%s is %w", name, ErrInvalidOrderEventType)
+	return EventType(""), fmt.Errorf("%s is %w", name, ErrInvalidEventType)
 }
 
 // MarshalText implements the text marshaller method.
-func (x OrderEventType) MarshalText() ([]byte, error) {
+func (x EventType) MarshalText() ([]byte, error) {
 	return []byte(string(x)), nil
 }
 
 // UnmarshalText implements the text unmarshaller method.
-func (x *OrderEventType) UnmarshalText(text []byte) error {
-	tmp, err := ParseOrderEventType(string(text))
+func (x *EventType) UnmarshalText(text []byte) error {
+	tmp, err := ParseEventType(string(text))
 	if err != nil {
 		return err
 	}

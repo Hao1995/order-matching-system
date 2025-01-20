@@ -2,12 +2,10 @@ package order
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 
-	"github.com/Hao1995/order-matching-system/internal/common/models/events"
 	"github.com/Hao1995/order-matching-system/pkg/logger"
 )
 
@@ -24,21 +22,15 @@ func NewKafkaProducer(writer *kafka.Writer) Producer {
 }
 
 // Publish sends a message to the Kafka topic.
-func (op *KafkaProducer) Publish(ctx context.Context, event *events.OrderEvent) error {
-	bytes, err := json.Marshal(event)
-	if err != nil {
-		logger.Error("failed to convert event to byte array", zap.Error(err))
-		return err
-	}
-
+func (op *KafkaProducer) Publish(ctx context.Context, val []byte) error {
 	msg := kafka.Message{
-		Value: bytes,
+		Value: val,
 	}
 	if err := op.writer.WriteMessages(ctx, msg); err != nil {
 		logger.Error("failed to write message", zap.Error(err))
 		return err
 	}
-	logger.Info("message sent", zap.ByteString("event", bytes))
+	logger.Info("message sent", zap.ByteString("val", val))
 	return nil
 }
 

@@ -1,14 +1,17 @@
 package order
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 
 	"github.com/Hao1995/order-matching-system/internal/api/order/requests"
 	"github.com/Hao1995/order-matching-system/internal/common/models/events"
+	"github.com/Hao1995/order-matching-system/pkg/logger"
 )
 
 var (
@@ -37,29 +40,32 @@ func (hlr *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	id := uuid.New().String()
-	side, err := events.ParseSide(request.Side)
+	id := uuid.NewString()
+	orderType, err := events.ParseOrderType(request.Type)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid order side"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid order orderType"})
 		return
 	}
 
-	orderEvent := events.OrderEvent{
-		EventType: events.OrderEventTypeCREATE,
-		Data: events.OrderCreateEvent{
-			ID:                id,
-			Symbol:            request.Symbol,
-			Side:              side,
-			Price:             request.Price,
-			Quantity:          request.Quantity,
-			RemainingQuantity: request.Quantity,
-			CanceledQuantity:  0,
-			CreatedAt:         now(),
-			UpdatedAt:         now(),
+	orderEvent := events.Event{
+		EventType: events.EventTypeCreateOrder,
+		Data: events.OrderEvent{
+			ID:        id,
+			Symbol:    request.Symbol,
+			Type:      orderType,
+			Price:     request.Price,
+			Quantity:  request.Quantity,
+			CreatedAt: now(),
 		},
 	}
 
-	err = hlr.producer.Publish(c.Request.Context(), &orderEvent)
+	val, err := json.Marshal(orderEvent)
+	if err != nil {
+		logger.Error("failed to json marshal event", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to json marshal"})
+	}
+
+	err = hlr.producer.Publish(c.Request.Context(), val)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed create a Create Order request"})
 		return
@@ -77,14 +83,20 @@ func (hlr *Handler) Cancel(c *gin.Context) {
 		return
 	}
 
-	orderEvent := events.OrderEvent{
-		EventType: events.OrderEventTypeCANCEL,
-		Data: events.OrderCancelEvent{
+	event := events.Event{
+		EventType: events.EventTypeCancelOrder,
+		Data: events.OrderEvent{
 			ID: request.ID,
 		},
 	}
 
-	err := hlr.producer.Publish(c.Request.Context(), &orderEvent)
+	val, err := json.Marshal(event)
+	if err != nil {
+		logger.Error("failed to json marshal event", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to json marshal"})
+	}
+
+	err = hlr.producer.Publish(c.Request.Context(), val)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed create a Cancel Order request"})
 		return
