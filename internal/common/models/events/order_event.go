@@ -3,8 +3,8 @@ package events
 
 import "time"
 
-// ENUM(BUY, SELL)
-type Side int
+// ENUM(Buy, Sell)
+type OrderType int
 
 // ENUM(CREATE, CANCEL)
 type OrderEventType string
@@ -17,7 +17,7 @@ type OrderEvent struct {
 type OrderCreateEvent struct {
 	ID                string
 	Symbol            string
-	Side              Side
+	OrderType         OrderType
 	Price             float64
 	Quantity          int64
 	RemainingQuantity int64

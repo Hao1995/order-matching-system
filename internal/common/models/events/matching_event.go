@@ -14,7 +14,7 @@ type MatchingEvent struct {
 type MatchingOrder struct {
 	ID                string
 	Symbol            string
-	Side              Side
+	OrderType         OrderType
 	Price             float64
 	Quantity          int64
 	RemainingQuantity int64

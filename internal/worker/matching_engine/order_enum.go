@@ -12,58 +12,58 @@ import (
 )
 
 const (
-	// SideBUY is a Side of type BUY.
-	SideBUY Side = iota
-	// SideSELL is a Side of type SELL.
-	SideSELL
+	// OrderTypeBuy is a OrderType of type Buy.
+	OrderTypeBuy OrderType = iota
+	// OrderTypeSell is a OrderType of type Sell.
+	OrderTypeSell
 )
 
-var ErrInvalidSide = errors.New("not a valid Side")
+var ErrInvalidOrderType = errors.New("not a valid OrderType")
 
-const _SideName = "BUYSELL"
+const _OrderTypeName = "BuySell"
 
-var _SideMap = map[Side]string{
-	SideBUY:  _SideName[0:3],
-	SideSELL: _SideName[3:7],
+var _OrderTypeMap = map[OrderType]string{
+	OrderTypeBuy:  _OrderTypeName[0:3],
+	OrderTypeSell: _OrderTypeName[3:7],
 }
 
 // String implements the Stringer interface.
-func (x Side) String() string {
-	if str, ok := _SideMap[x]; ok {
+func (x OrderType) String() string {
+	if str, ok := _OrderTypeMap[x]; ok {
 		return str
 	}
-	return fmt.Sprintf("Side(%d)", x)
+	return fmt.Sprintf("OrderType(%d)", x)
 }
 
 // IsValid provides a quick way to determine if the typed value is
 // part of the allowed enumerated values
-func (x Side) IsValid() bool {
-	_, ok := _SideMap[x]
+func (x OrderType) IsValid() bool {
+	_, ok := _OrderTypeMap[x]
 	return ok
 }
 
-var _SideValue = map[string]Side{
-	_SideName[0:3]: SideBUY,
-	_SideName[3:7]: SideSELL,
+var _OrderTypeValue = map[string]OrderType{
+	_OrderTypeName[0:3]: OrderTypeBuy,
+	_OrderTypeName[3:7]: OrderTypeSell,
 }
 
-// ParseSide attempts to convert a string to a Side.
-func ParseSide(name string) (Side, error) {
-	if x, ok := _SideValue[name]; ok {
+// ParseOrderType attempts to convert a string to a OrderType.
+func ParseOrderType(name string) (OrderType, error) {
+	if x, ok := _OrderTypeValue[name]; ok {
 		return x, nil
 	}
-	return Side(0), fmt.Errorf("%s is %w", name, ErrInvalidSide)
+	return OrderType(0), fmt.Errorf("%s is %w", name, ErrInvalidOrderType)
 }
 
 // MarshalText implements the text marshaller method.
-func (x Side) MarshalText() ([]byte, error) {
+func (x OrderType) MarshalText() ([]byte, error) {
 	return []byte(x.String()), nil
 }
 
 // UnmarshalText implements the text unmarshaller method.
-func (x *Side) UnmarshalText(text []byte) error {
+func (x *OrderType) UnmarshalText(text []byte) error {
 	name := string(text)
-	tmp, err := ParseSide(name)
+	tmp, err := ParseOrderType(name)
 	if err != nil {
 		return err
 	}

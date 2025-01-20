@@ -4,276 +4,164 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/suite"
 )
 
 type OrderBookTestSuite struct {
 	suite.Suite
-
-	symbol string
+	orderBook *OrderBook
+	symbol    string
+	now       time.Time
 }
 
 func TestOrderBookTestSuite(t *testing.T) {
 	suite.Run(t, new(OrderBookTestSuite))
 }
 
-func (s *OrderBookTestSuite) SetupSuite() {
-	s.symbol = "AAPL"
+func (suite *OrderBookTestSuite) SetupTest() {
+	suite.orderBook = NewOrderBook()
+	suite.symbol = "AAPL"
+	suite.now = time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
 }
 
-func (s *OrderBookTestSuite) SetupTest() {}
-
-func (s *OrderBookTestSuite) TeardownSuite() {}
-
-func (s *OrderBookTestSuite) TeardownTest() {}
-
-func (s *OrderBookTestSuite) TestGetPriceLevels() {
-	// arrange
-	orderBook := NewOrderBook()
-
-	for _, t := range []struct {
-		name     string
-		side     Side
-		expected *PriceLevel
-	}{
+func (suite *OrderBookTestSuite) TestInsertOrder() {
+	// Test inserting orders with different price levels
+	orders := []Order{
 		{
-			name:     "test buy side",
-			side:     SideBUY,
-			expected: orderBook.buyHead.Next,
+			ID:                "order1",
+			Symbol:            suite.symbol,
+			Type:              OrderTypeBuy,
+			Price:             101.0,
+			RemainingQuantity: 5,
+			CanceledQuantity:  0,
+			Quantity:          10,
+			CreatedAt:         suite.now,
+			UpdatedAt:         suite.now,
+		}, {
+			ID:                "order2",
+			Symbol:            suite.symbol,
+			Type:              OrderTypeBuy,
+			Price:             100.0,
+			RemainingQuantity: 10,
+			CanceledQuantity:  0,
+			Quantity:          20,
+			CreatedAt:         suite.now,
+			UpdatedAt:         suite.now,
+		}, {
+			ID:                "order3",
+			Symbol:            suite.symbol,
+			Type:              OrderTypeSell,
+			Price:             102.0,
+			RemainingQuantity: 15,
+			CanceledQuantity:  0,
+			Quantity:          25,
+			CreatedAt:         suite.now,
+			UpdatedAt:         suite.now,
+		}, {
+			ID:                "order4",
+			Symbol:            suite.symbol,
+			Type:              OrderTypeSell,
+			Price:             103.0,
+			RemainingQuantity: 20,
+			CanceledQuantity:  0,
+			Quantity:          30,
+			CreatedAt:         suite.now,
+			UpdatedAt:         suite.now,
 		},
-		{
-			name:     "test sell side",
-			side:     SideSELL,
-			expected: orderBook.sellHead.Next,
-		},
-	} {
-		s.Run(t.name, func() {
-			// act
-			priceLevels := orderBook.GetPriceLevels(t.side)
-
-			// assert
-			s.Equal(t.expected, priceLevels)
-		})
 	}
+
+	for _, order := range orders {
+		suite.orderBook.InsertOrder(order)
+	}
+
+	// Verify that orders are inserted at the correct price levels
+	suite.Equal(101.0, suite.orderBook.BuyLevels.Price)
+	suite.Equal(102.0, suite.orderBook.SellLevels.Price)
+
+	// Test inserting orders with the same price level
+	duplicateOrder := Order{ID: "order5", Type: OrderTypeBuy, Price: 101.0, RemainingQuantity: 7, CanceledQuantity: 0, Quantity: 7, CreatedAt: suite.now, UpdatedAt: suite.now, Symbol: suite.symbol}
+	suite.orderBook.InsertOrder(duplicateOrder)
+	suite.Equal(int64(12), suite.orderBook.BuyLevels.TotalQuantity)
 }
 
-func (s *OrderBookTestSuite) TestAddOrder_BuySide() {
-	// arrange
-	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z08:00")
-	side := SideBUY
-	price1 := 25.89
-	price2 := 30.33
-
-	orderBook := NewOrderBook()
-	order1 := Order{
-		ID:                uuid.NewString(),
-		Symbol:            s.symbol,
-		Side:              side,
-		Price:             price1,
-		Quantity:          10,
+func (suite *OrderBookTestSuite) TestDeleteOrder() {
+	// Test deleting orders that exist
+	order := Order{
+		ID:                "order1",
+		Type:              OrderTypeBuy,
+		Price:             100.0,
 		RemainingQuantity: 10,
 		CanceledQuantity:  0,
-		CreatedAt:         now,
-		UpdatedAt:         now,
+		Quantity:          15,
+		CreatedAt:         suite.now,
+		UpdatedAt:         suite.now,
+		Symbol:            suite.symbol,
 	}
-	order2 := order1
-	order2.Price = price2
 
-	// act
-	err := orderBook.AddOrder(&order1)
-	s.ErrorIs(err, nil)
+	suite.orderBook.InsertOrder(order)
+	err := suite.orderBook.DeleteOrder(order.ID)
+	suite.NoError(err)
 
-	err = orderBook.AddOrder(&order2)
-	s.ErrorIs(err, nil)
+	// Verify the order is deleted correctly
+	_, exists := suite.orderBook.orderMap[order.ID]
+	suite.False(exists)
 
-	// assert
-	buyPriceLevel := orderBook.buyHead.Next
-	s.Equal(price2, buyPriceLevel.Price)
-	s.Equal(&order2, buyPriceLevel.headOrder.Next)
-	buyNode, ok := orderBook.buyNodeByPrice[price2]
-	s.True(ok)
-	s.Equal(buyPriceLevel, buyNode)
+	// Test deleting an order that does not exist
+	err = suite.orderBook.DeleteOrder("nonexistent_order")
+	suite.Error(err)
 
-	buyPriceLevel = buyPriceLevel.Next
-	s.Equal(price1, buyPriceLevel.Price)
-	s.Equal(&order1, buyPriceLevel.headOrder.Next)
-	buyNode, ok = orderBook.buyNodeByPrice[price1]
-	s.True(ok)
-	s.Equal(buyPriceLevel, buyNode)
-}
-
-func (s *OrderBookTestSuite) TestAddOrder_SellSide() {
-	// arrange
-	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z08:00")
-	side := SideSELL
-	price1 := 30.33
-	price2 := 25.89
-
-	orderBook := NewOrderBook()
-	order1 := Order{
-		ID:                uuid.NewString(),
-		Symbol:            s.symbol,
-		Side:              side,
-		Price:             price1,
-		Quantity:          10,
+	// Test deleting the only order in a price level
+	order2 := Order{
+		ID:                "order2",
+		Type:              OrderTypeBuy,
+		Price:             101.0,
 		RemainingQuantity: 10,
 		CanceledQuantity:  0,
-		CreatedAt:         now,
-		UpdatedAt:         now,
-	}
-	order2 := order1
-	order2.Price = price2
-
-	// act
-	err := orderBook.AddOrder(&order1)
-	s.ErrorIs(err, nil)
-
-	err = orderBook.AddOrder(&order2)
-	s.ErrorIs(err, nil)
-
-	// assert
-	sellPriceLevel := orderBook.sellHead.Next
-	s.Equal(price2, sellPriceLevel.Price)
-	s.Equal(&order2, sellPriceLevel.headOrder.Next)
-	sellNode, ok := orderBook.sellNodeByPrice[price2]
-	s.True(ok)
-	s.Equal(sellPriceLevel, sellNode)
-
-	sellPriceLevel = sellPriceLevel.Next
-	s.Equal(price1, sellPriceLevel.Price)
-	s.Equal(&order1, sellPriceLevel.headOrder.Next)
-	sellNode, ok = orderBook.sellNodeByPrice[price1]
-	s.True(ok)
-	s.Equal(sellPriceLevel, sellNode)
-}
-
-func (s *OrderBookTestSuite) TestRemoveOrder() {
-	// arrange
-	now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z08:00")
-	side := SideBUY
-	price1 := 25.89
-	price2 := 30.33
-
-	order1 := Order{
-		ID:                uuid.NewString(),
-		Symbol:            s.symbol,
-		Side:              side,
-		Price:             price1,
 		Quantity:          10,
-		RemainingQuantity: 10,
-		CanceledQuantity:  0,
-		CreatedAt:         now,
-		UpdatedAt:         now,
+		CreatedAt:         suite.now,
+		UpdatedAt:         suite.now,
+		Symbol:            suite.symbol,
 	}
-	order2 := order1
-	order2.Price = price2
-
-	orderBook := NewOrderBook()
-	priceLevel1 := NewPriceLevel(order1.Price, order1.Side)
-	priceLevel1.Add(&order1)
-	orderBook.priceLevelByOrderID[order1.ID] = priceLevel1
-
-	priceLevel2 := NewPriceLevel(order2.Price, order2.Side)
-	priceLevel2.Add(&order2)
-	orderBook.priceLevelByOrderID[order2.ID] = priceLevel2
-
-	orderBook.buyHead.Next = priceLevel2
-	priceLevel2.Prev = orderBook.buyHead
-	priceLevel2.Next = priceLevel1
-	priceLevel1.Prev = priceLevel2
-	priceLevel1.Next = orderBook.buyTail
-	orderBook.buyTail.Prev = priceLevel1
-
-	orderBook.buyNodeByPrice[priceLevel1.Price] = priceLevel1
-	orderBook.buyNodeByPrice[priceLevel2.Price] = priceLevel2
-
-	// act
-	err := orderBook.RemoveOrder(order2.ID)
-	s.ErrorIs(err, nil)
-
-	// assert
-	priceLevel := orderBook.buyHead.Next
-	s.Equal(order1.Price, priceLevel.Price)
-	s.Equal(orderBook.buyTail, priceLevel.Next)
-
-	_, ok := orderBook.buyNodeByPrice[order2.Price]
-	s.False(ok)
+	suite.orderBook.InsertOrder(order2)
+	suite.Equal(101.0, suite.orderBook.BuyLevels.Price)
+	err = suite.orderBook.DeleteOrder(order2.ID)
+	suite.NoError(err)
+	suite.Nil(suite.orderBook.BuyLevels)
 }
 
-func (s *OrderBookTestSuite) TestRemovePriceLevel() {
-	for _, t := range []struct {
-		name string
-		side Side
-	}{
-		{
-			name: "buy side",
-			side: SideBUY,
-		},
-		{
-			name: "sell side",
-			side: SideSELL,
-		},
-	} {
-		s.Run(t.name, func() {
-			// arrange
-			now, _ := time.Parse(time.RFC3339, "2024-01-01T00:00:00Z08:00")
-			price := 25.89
-
-			order1 := Order{
-				ID:                uuid.NewString(),
-				Symbol:            s.symbol,
-				Side:              t.side,
-				Price:             price,
-				Quantity:          10,
-				RemainingQuantity: 10,
-				CanceledQuantity:  0,
-				CreatedAt:         now,
-				UpdatedAt:         now,
-			}
-			order2 := order1
-
-			orderBook := NewOrderBook()
-			priceLevel := NewPriceLevel(order1.Price, order1.Side)
-			priceLevel.Add(&order1)
-			orderBook.priceLevelByOrderID[order1.ID] = priceLevel
-			priceLevel.Add(&order2)
-			orderBook.priceLevelByOrderID[order2.ID] = priceLevel
-
-			var head, tail *PriceLevel
-			if t.side == SideBUY {
-				head = orderBook.buyHead
-				tail = orderBook.buyTail
-				orderBook.buyNodeByPrice[priceLevel.Price] = priceLevel
-			} else {
-				head = orderBook.sellHead
-				tail = orderBook.sellTail
-				orderBook.sellNodeByPrice[priceLevel.Price] = priceLevel
-			}
-
-			head.Next = priceLevel
-			priceLevel.Prev = head
-			priceLevel.Next = tail
-			tail.Prev = priceLevel
-
-			// act
-			err := orderBook.RemovePriceLevel(t.side, priceLevel.Price)
-			s.ErrorIs(err, nil)
-
-			// assert
-			var ok bool
-			if t.side == SideBUY {
-				head = orderBook.buyHead
-				tail = orderBook.buyTail
-				_, ok = orderBook.buyNodeByPrice[priceLevel.Price]
-			} else {
-				head = orderBook.sellHead
-				tail = orderBook.sellTail
-				_, ok = orderBook.sellNodeByPrice[priceLevel.Price]
-			}
-			s.Equal(tail, head.Next)
-			s.True(tail.IsDummyNode)
-			s.False(ok)
-		})
+func (suite *OrderBookTestSuite) TestGetTopTicks() {
+	orders := []Order{
+		{ID: "order1", Type: OrderTypeBuy, Price: 101.0, RemainingQuantity: 5, CanceledQuantity: 0, Quantity: 10, CreatedAt: suite.now, UpdatedAt: suite.now, Symbol: suite.symbol},
+		{ID: "order2", Type: OrderTypeBuy, Price: 100.0, RemainingQuantity: 10, CanceledQuantity: 0, Quantity: 20, CreatedAt: suite.now, UpdatedAt: suite.now, Symbol: suite.symbol},
+		{ID: "order3", Type: OrderTypeSell, Price: 102.0, RemainingQuantity: 15, CanceledQuantity: 0, Quantity: 25, CreatedAt: suite.now, UpdatedAt: suite.now, Symbol: suite.symbol},
+		{ID: "order4", Type: OrderTypeSell, Price: 103.0, RemainingQuantity: 20, CanceledQuantity: 0, Quantity: 30, CreatedAt: suite.now, UpdatedAt: suite.now, Symbol: suite.symbol},
 	}
+
+	for _, order := range orders {
+		suite.orderBook.InsertOrder(order)
+	}
+
+	// Test retrieving top N ticks with N less than total levels
+	buyTicks, sellTicks := suite.orderBook.GetTopTicks(2)
+	suite.Len(buyTicks, 2)
+	suite.Len(sellTicks, 2)
+
+	// Test retrieving top N ticks with N greater than total levels
+	buyTicks, sellTicks = suite.orderBook.GetTopTicks(5)
+	suite.Len(buyTicks, 2)
+	suite.Len(sellTicks, 2)
+
+	// Test retrieving top N ticks with exactly one level
+	suite.orderBook = NewOrderBook()
+	order := Order{ID: "order5", Type: OrderTypeBuy, Price: 105.0, RemainingQuantity: 5, CanceledQuantity: 0, Quantity: 5, CreatedAt: suite.now, UpdatedAt: suite.now, Symbol: suite.symbol}
+	suite.orderBook.InsertOrder(order)
+	buyTicks, sellTicks = suite.orderBook.GetTopTicks(1)
+	suite.Len(buyTicks, 1)
+	suite.Len(sellTicks, 0)
+
+	// Test retrieving top N ticks with empty order book
+	suite.orderBook = NewOrderBook()
+	buyTicks, sellTicks = suite.orderBook.GetTopTicks(2)
+	suite.Len(buyTicks, 0)
+	suite.Len(sellTicks, 0)
 }
