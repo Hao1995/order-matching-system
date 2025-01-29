@@ -23,7 +23,8 @@ func NewKafkaConsumer(brokers []string, topic string) Consumer {
 	}
 }
 
-// Consume sends a message to the Kafka topic.
+// Consume receives a message to the Kafka topic and manually
+// commit messages after completely executing the handler
 func (op *KafkaConsumer) Consume(ctx context.Context, handler func(val []byte) error) error {
 	msg, err := op.reader.FetchMessage(ctx)
 	if err != nil {

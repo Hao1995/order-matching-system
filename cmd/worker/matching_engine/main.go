@@ -108,6 +108,7 @@ func main() {
 				return nil
 			}
 
+			// Retry consume messages by BackOffDelay
 			if err := retry.Do(
 				func() error {
 					if err := consumer.Consume(context.Background(), handler); err != nil {
