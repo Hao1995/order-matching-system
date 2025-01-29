@@ -25,20 +25,37 @@ var (
 
 type Matcher struct {
 	orderBook *OrderBook
+	tickNum   int8
 }
 
-func NewMatcher(orderBook *OrderBook) *Matcher {
+func NewMatcher(orderBook *OrderBook, tickNum int8) *Matcher {
 	return &Matcher{
 		orderBook: orderBook,
+		tickNum:   tickNum,
 	}
 }
 
-func (me *Matcher) CancelOrder(orderID string) error {
-	return me.orderBook.DeleteOrder(orderID)
+// CancelOrder delete the order from the order book
+func (me *Matcher) CancelOrder(orderID string) (Matching, error) {
+	if err := me.orderBook.DeleteOrder(orderID); err != nil {
+		return Matching{}, err
+	}
+
+	var matching Matching
+	matching.BuyTicks, matching.SellTicks = me.orderBook.GetTopTicks(me.tickNum)
+	return matching, nil
 }
 
-// MatchOrder attempts to match an incoming order with existing orders
-func (me *Matcher) MatchOrder(order Order) []Transaction {
+// CreateOrder inserts a new order
+func (me *Matcher) CreateOrder(order Order) Matching {
+	var matching Matching
+	matching.Transactions = me.matchOrder(order)
+	matching.BuyTicks, matching.SellTicks = me.orderBook.GetTopTicks(me.tickNum)
+	return matching
+}
+
+// matchOrder attempts to match an incoming order with existing orders
+func (me *Matcher) matchOrder(order Order) []Transaction {
 	// Use two pointers to sync the updates back to the OrderBook
 	var matchingLevels **PriceLevel
 	var priceComparator func(float64, float64) bool
@@ -100,8 +117,4 @@ func (me *Matcher) MatchOrder(order Order) []Transaction {
 	}
 
 	return transactions
-}
-
-func (me *Matcher) GetTopTicks(n int8) ([]Tick, []Tick) {
-	return me.orderBook.GetTopTicks(n)
 }

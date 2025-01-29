@@ -49,7 +49,7 @@ func main() {
 	orderBook := matchingengine.NewOrderBook()
 
 	// Matcher
-	matcher := matchingengine.NewMatcher(orderBook)
+	matcher := matchingengine.NewMatcher(orderBook, cfg.TickNum)
 	logger.Info("success create a Kafka reader", zap.String("topic", cfg.App.OrderTopic))
 
 	go func() {
@@ -68,66 +68,42 @@ func main() {
 					return ErrUnknownEventType
 				}
 
-				data := orderEvent
+				var matching matchingengine.Matching
+				var matchingEvent events.MatchingEvent
 				switch event.EventType {
 				case events.EventTypeCreateOrder:
-					order := matchingengine.Order{
-						ID:        data.ID,
-						Symbol:    data.Symbol,
-						Type:      matchingengine.OrderType(data.Type),
-						Price:     data.Price,
-						Quantity:  data.Quantity,
-						CreatedAt: data.CreatedAt,
-					}
-
-					transactions := matcher.MatchOrder(order)
-
-					buyTicks, sellTicks := matcher.GetTopTicks(int8(cfg.TickNum))
-
-					matchingEvent := events.MatchingEvent{
-						Type:         events.MatchingEventTypeMatching,
-						Order:        data,
-						Transactions: convertToTransactionEvents(transactions),
-						BuyTicks:     convertToTickEvents(buyTicks),
-						SellTicks:    convertToTickEvents(sellTicks),
-					}
-
-					// Publish matching event
-					matchingMsg, err := json.Marshal(matchingEvent)
-					if err != nil {
-						logger.Error("failed to marshal matching event", zap.Error(err), zap.Any("matchingEvent", matchingEvent))
-						return err
-					}
-
-					if err := publisher.Publish(matchingMsg); err != nil {
-						logger.Error("failed to publish matching event", zap.Error(err))
-						return err
-					}
+					order := convertOrderEventToOrder(orderEvent)
+					matching = matcher.CreateOrder(order)
+					matchingEvent.Type = events.MatchingEventTypeCreate
 				case events.EventTypeCancelOrder:
-					if err := matcher.CancelOrder(data.ID); err != nil {
-						logger.Error("failed to cancel order", zap.Error(err))
-					}
-
-					buyTicks, sellTicks := matcher.GetTopTicks(int8(cfg.TickNum))
-
-					matchingEvent := events.MatchingEvent{
-						Type:      events.MatchingEventTypeCancel,
-						Order:     data,
-						BuyTicks:  convertToTickEvents(buyTicks),
-						SellTicks: convertToTickEvents(sellTicks),
-					}
-
-					// Publish matching event
-					matchingMsg, err := json.Marshal(matchingEvent)
+					var err error
+					matching, err = matcher.CancelOrder(orderEvent.ID)
 					if err != nil {
-						logger.Error("failed to marshal matching event", zap.Error(err), zap.Any("matchingEvent", matchingEvent))
+						logger.Error("failed to cancel order", zap.Error(err))
 						return err
 					}
+					matchingEvent.Type = events.MatchingEventTypeCancel
+				default:
+					logger.Error("unknown event type", zap.String("eventType", event.EventType.String()))
+					return ErrUnknownEventType
+				}
 
-					if err := publisher.Publish(matchingMsg); err != nil {
-						logger.Error("failed to publish matching event", zap.Error(err))
-						return err
-					}
+				// Convert matching data to matching event
+				matchingEvent.Order = orderEvent
+				matchingEvent.Transactions = convertToTransactionEvents(matching.Transactions)
+				matchingEvent.BuyTicks = convertToTickEvents(matching.BuyTicks)
+				matchingEvent.SellTicks = convertToTickEvents(matching.SellTicks)
+
+				// Publish matching event
+				matchingMsg, err := json.Marshal(matchingEvent)
+				if err != nil {
+					logger.Error("failed to marshal matching event", zap.Error(err), zap.Any("matchingEvent", matchingEvent))
+					return err
+				}
+
+				if err := publisher.Publish(matchingMsg); err != nil {
+					logger.Error("failed to publish matching event", zap.Error(err))
+					return err
 				}
 				return nil
 			}
@@ -178,4 +154,15 @@ func convertToTickEvents(ticks []matchingengine.Tick) []events.TickEvent {
 		})
 	}
 	return result
+}
+
+func convertOrderEventToOrder(orderEvent events.OrderEvent) matchingengine.Order {
+	return matchingengine.Order{
+		ID:        orderEvent.ID,
+		Symbol:    orderEvent.Symbol,
+		Type:      matchingengine.OrderType(orderEvent.Type),
+		Price:     orderEvent.Price,
+		Quantity:  orderEvent.Quantity,
+		CreatedAt: orderEvent.CreatedAt,
+	}
 }

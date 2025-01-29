@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	// MatchingEventTypeMatching is a MatchingEventType of type Matching.
-	MatchingEventTypeMatching MatchingEventType = "Matching"
+	// MatchingEventTypeCreate is a MatchingEventType of type Create.
+	MatchingEventTypeCreate MatchingEventType = "Create"
 	// MatchingEventTypeCancel is a MatchingEventType of type Cancel.
 	MatchingEventTypeCancel MatchingEventType = "Cancel"
 )
@@ -33,8 +33,8 @@ func (x MatchingEventType) IsValid() bool {
 }
 
 var _MatchingEventTypeValue = map[string]MatchingEventType{
-	"Matching": MatchingEventTypeMatching,
-	"Cancel":   MatchingEventTypeCancel,
+	"Create": MatchingEventTypeCreate,
+	"Cancel": MatchingEventTypeCancel,
 }
 
 // ParseMatchingEventType attempts to convert a string to a MatchingEventType.

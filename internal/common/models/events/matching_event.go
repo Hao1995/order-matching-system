@@ -3,7 +3,7 @@ package events
 
 import "time"
 
-// ENUM(Matching, Cancel)
+// ENUM(Create, Cancel)
 type MatchingEventType string
 
 type MatchingEvent struct {

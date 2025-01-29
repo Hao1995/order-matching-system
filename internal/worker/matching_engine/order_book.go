@@ -27,6 +27,16 @@ type Tick struct {
 	Quantity int64
 }
 
+// ENUM(Create, Cancel)
+type MatchingType string
+
+type Matching struct {
+	Type         MatchingType
+	Transactions []Transaction
+	BuyTicks     []Tick
+	SellTicks    []Tick
+}
+
 // ENUM(Buy, Sell)
 type OrderType int
 
