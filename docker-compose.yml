@@ -42,6 +42,20 @@ services:
     networks:
       - app-network
 
+  matching-engine-worker:
+    build:
+      context: .
+      dockerfile: cmd/worker/matching_engine/Dockerfile
+    # ports:
+    #   - "8080:8080"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    env_file:
+      - cmd/worker/matching_engine/.env.example
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge

@@ -41,25 +41,19 @@ func (hlr *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	id := uuid.NewString()
-	orderType, err := events.ParseOrderType(request.Type)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid order orderType"})
-		return
-	}
-
 	orderEvent := events.Event{
 		EventType: events.EventTypeCreateOrder,
 		Data: events.OrderEvent{
-			ID:        id,
+			ID:        uuid.NewString(),
 			Symbol:    request.Symbol,
-			Type:      orderType,
+			Type:      request.Type,
 			Price:     request.Price,
 			Quantity:  request.Quantity,
 			CreatedAt: now(),
 		},
 	}
 
+	logger.Debug("CreateOrder. order event.", zap.Any("orderEvent", orderEvent))
 	val, err := json.Marshal(orderEvent)
 	if err != nil {
 		logger.Error("failed to json marshal event", zap.Error(err))
@@ -79,7 +73,8 @@ func (hlr *Handler) Create(c *gin.Context) {
 func (hlr *Handler) Cancel(c *gin.Context) {
 	var request requests.CancelRequest
 
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := c.ShouldBindUri(&request); err != nil {
+		logger.Error("failed to bind uri", zap.Error(err))
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "Invalid request data"})
 		return
 	}

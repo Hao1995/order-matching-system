@@ -1,3 +1,4 @@
+//go:generate go-enum --marshal
 package matchingengine
 
 import (
@@ -38,7 +39,7 @@ type Matching struct {
 }
 
 // ENUM(Buy, Sell)
-type OrderType int
+type OrderType string
 
 // Order represents a buy or sell order
 type Order struct {

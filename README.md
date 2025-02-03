@@ -101,7 +101,13 @@ make down
 ```
 
 # Kafka Test
-Consume Messages
+Consume Order events, add `--group MATCHING_WORKER` for consuming messages of matching_worker
 ```
-docker exec -it kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic AAPL_ORDER --from-beginning
+docker exec -it kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic AAPL_ORDER
 ```
+
+Consume Matching events
+```
+docker exec -it kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic AAPL_MATCHING
+```
+

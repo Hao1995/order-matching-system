@@ -56,17 +56,13 @@ func main() {
 		for {
 			// Consume event
 			handler := func(val []byte) error {
-				var event events.Event
+				var orderEvent events.OrderEvent
+				event := events.Event{Data: &orderEvent}
 				if err := json.Unmarshal(val, &event); err != nil {
 					logger.Error("failed to unmarshal event", zap.Error(err), zap.ByteString("val", val))
 					return err
 				}
-
-				orderEvent, ok := event.Data.(events.OrderEvent)
-				if !ok {
-					logger.Error("unknown event type, skip the event", zap.Any("data", event.Data))
-					return ErrUnknownEventType
-				}
+				logger.Debug("Receive event", zap.Any("event", event))
 
 				var matching matchingengine.Matching
 				var matchingEvent events.MatchingEvent
@@ -79,8 +75,8 @@ func main() {
 					var err error
 					matching, err = matcher.CancelOrder(orderEvent.ID)
 					if err != nil {
-						logger.Error("failed to cancel order", zap.Error(err))
-						return err
+						logger.Warn("failed to cancel order, pass it", zap.Error(err))
+						return nil
 					}
 					matchingEvent.Type = events.MatchingEventTypeCancel
 				default:
@@ -93,6 +89,7 @@ func main() {
 				matchingEvent.Transactions = convertToTransactionEvents(matching.Transactions)
 				matchingEvent.BuyTicks = convertToTickEvents(matching.BuyTicks)
 				matchingEvent.SellTicks = convertToTickEvents(matching.SellTicks)
+				logger.Debug("Get matchingEvent", zap.Any("matchingEvent", matchingEvent))
 
 				// Publish matching event
 				matchingMsg, err := json.Marshal(matchingEvent)

@@ -1,5 +1,5 @@
 # Use the official Golang 1.22.1 image as a base
-FROM golang:1.22.1-alpine
+FROM golang:1.23.5-alpine
 
 # Set environment variables for Go
 ENV GO111MODULE=on \
@@ -17,14 +17,11 @@ RUN go mod download
 # Copy the application source code
 COPY ./pkg ./pkg
 COPY ./internal/common ./internal/common
-COPY ./cmd/api/order ./cmd/api/order
-COPY ./internal/api/order ./internal/api/order
+COPY ./cmd/worker/matching_engine ./cmd/worker/matching_engine
+COPY ./internal/worker/matching_engine ./internal/worker/matching_engine
 
 # Build the Go application
-RUN go build -o main ./cmd/api/order
-
-# Expose the port the application runs on
-EXPOSE 8080
+RUN go build -o main ./cmd/worker/matching_engine
 
 # Command to run the application
 CMD ["./main"]

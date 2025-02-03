@@ -1,6 +1,6 @@
 module github.com/Hao1995/order-matching-system
 
-go 1.22.1
+go 1.23.5
 
 require (
 	github.com/avast/retry-go/v4 v4.6.0
